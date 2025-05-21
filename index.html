@@ -6,78 +6,189 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f5f5f5;
+      font-family: 'Cairo', Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      background: linear-gradient(135deg, #f5f5f5 60%, #e0e7ff 100%);
+      min-height: 100vh;
       text-align: center;
     }
-    input, select, button {
+    .container {
+      background: #fff;
+      margin: 30px auto;
+      padding: 24px 18px 18px 18px;
+      border-radius: 18px;
+      box-shadow: 0 2px 16px #0001;
+      max-width: 420px;
+      width: 98vw;
+    }
+    h2 {
+      margin-bottom: 24px;
+      color: #3b3b3b;
+      font-size: 2rem;
+      letter-spacing: 1px;
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    #productId {
+      flex: 1;
       font-size: 18px;
-      margin: 10px;
-      padding: 10px;
-      width: 90%;
-      max-width: 400px;
-      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1.5px solid #bdbdbd;
+      border-radius: 8px;
+      outline: none;
+      transition: border 0.2s;
+      background: #fafbff;
+    }
+    #productId:focus {
+      border: 2px solid #6366f1;
+      background: #f0f4ff;
+    }
+    .barcode-btn {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .barcode-btn:hover, .barcode-btn:focus {
+      background: #4f46e5;
+    }
+    button:not(.barcode-btn) {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 0;
+      font-size: 18px;
+      margin: 8px 0;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.2s;
+      box-shadow: 0 1px 4px #0001;
+    }
+    button:not(.barcode-btn):hover, button:not(.barcode-btn):focus {
+      background: #4f46e5;
     }
     #sizesBox {
       margin-bottom: 20px;
     }
+    select {
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1.5px solid #bdbdbd;
+      width: 100%;
+      margin-bottom: 10px;
+      background: #fafbff;
+    }
+    #result.success { color: #059669; font-weight: bold; }
+    #result.error { color: #dc2626; font-weight: bold; }
     #reader {
-      margin: 10px auto;
-      width: 300px;
+      margin: 12px auto 0 auto;
+      width: 320px;
       max-width: 98vw;
       display: none;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px #0002;
+      background: #fff;
     }
-    @media (max-width: 500px) {
-      body {
-        padding: 5px;
-      }
-      input, select, button {
-        font-size: 16px;
-        width: 98%;
-        max-width: 98vw;
-        margin: 6px 0;
+    @media (max-width: 600px) {
+      .container {
+        margin: 8px auto;
+        padding: 10px 2vw 14px 2vw;
+        border-radius: 10px;
       }
       h2 {
-        font-size: 20px;
+        font-size: 1.2rem;
+        margin-bottom: 14px;
+      }
+      .input-row {
+        flex-direction: row;
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+      #productId, select {
+        font-size: 15px;
+        padding: 8px 6px;
+        border-radius: 6px;
+      }
+      .barcode-btn, button:not(.barcode-btn) {
+        font-size: 17px;
+        border-radius: 7px;
+        height: 38px;
+        min-width: 38px;
+        padding: 0;
       }
       #reader {
         width: 98vw;
-        min-width: 200px;
+        min-width: 180px;
+        border-radius: 8px;
       }
     }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-  <h2>📦 تجهيز الطلبات اليومية</h2>
-  <input type="text" id="productId" placeholder="أدخل ID المنتج" autofocus>
-  <button onclick="fetchSizes()">عرض القياسات</button>
-  <button onclick="startScan()">📷 قراءة الباركود</button>
-  <div id="reader"></div>
+  <div class="container">
+    <h2>📦 تجهيز الطلبات اليومية</h2>
+    <div class="input-row">
+      <input type="text" id="productId" placeholder="أدخل ID المنتج" autocomplete="off" autofocus>
+      <button class="barcode-btn" onclick="startScan()" title="قراءة الباركود" tabindex="0">📷</button>
+    </div>
+    <button onclick="fetchSizes()">عرض القياسات</button>
+    <button onclick="clearForm()">مسح</button>
+    <div id="reader"></div>
 
-  <div id="sizesBox" style="display:none;">
-    <select id="sizeSelect"></select><br>
-    <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
+    <div id="sizesBox" style="display:none;">
+      <select id="sizeSelect"></select><br>
+      <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
+    </div>
+
+    <p id="result"></p>
   </div>
-
-  <p id="result"></p>
-
   <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec'; 
 
     // تركيز تلقائي على حقل ID عند تحميل الصفحة
-    window.onload = function() {
-      document.getElementById("productId").focus();
-    };
+    function focusProductId() {
+      const input = document.getElementById("productId");
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+    window.onload = focusProductId;
+
+    function clearForm() {
+      document.getElementById("productId").value = "";
+      document.getElementById("sizesBox").style.display = "none";
+      document.getElementById("result").textContent = "";
+      document.getElementById("result").className = "";
+      focusProductId();
+    }
 
     async function fetchSizes() {
-      document.getElementById("result").textContent = "";
+      document.getElementById("result").textContent = "جاري التحميل...";
+      document.getElementById("result").className = "";
       document.getElementById("sizesBox").style.display = "none";
       const id = document.getElementById("productId").value.trim();
       if (!id) {
         document.getElementById("result").textContent = "يرجى إدخال ID المنتج.";
-        document.getElementById("productId").focus();
+        document.getElementById("result").className = "error";
+        focusProductId();
         return;
       }
       try {
@@ -94,18 +205,23 @@
             select.appendChild(option);
           });
           document.getElementById("sizesBox").style.display = "block";
+          document.getElementById("result").textContent = "";
+          document.getElementById("result").className = "";
         } else {
           document.getElementById("result").textContent = "❌ المنتج غير موجود أو لا توجد قياسات متاحة.";
-          document.getElementById("productId").focus();
+          document.getElementById("result").className = "error";
+          focusProductId();
         }
       } catch (e) {
         document.getElementById("result").textContent = "حدث خطأ أثناء جلب القياسات.";
-        document.getElementById("productId").focus();
+        document.getElementById("result").className = "error";
+        focusProductId();
       }
     }
 
     async function prepareOrder() {
-      document.getElementById("result").textContent = "";
+      document.getElementById("result").textContent = "جاري تجهيز الطلب...";
+      document.getElementById("result").className = "";
       const id = document.getElementById("productId").value.trim();
       const size = document.getElementById("sizeSelect").value;
       const btn = document.getElementById("prepareBtn");
@@ -120,21 +236,24 @@
         const result = await res.json();
         if (result.success) {
           document.getElementById("result").textContent = "✅ تم تجهيز الطلب بنجاح.";
+          document.getElementById("result").className = "success";
           document.getElementById("sizesBox").style.display = "none";
           document.getElementById("productId").value = "";
-          document.getElementById("productId").focus();
+          focusProductId();
         } else {
           document.getElementById("result").textContent = result.message || "❌ فشل في التجهيز.";
-          document.getElementById("productId").focus();
+          document.getElementById("result").className = "error";
+          focusProductId();
         }
       } catch (e) {
         document.getElementById("result").textContent = "حدث خطأ أثناء تجهيز الطلب.";
-        document.getElementById("productId").focus();
+        document.getElementById("result").className = "error";
+        focusProductId();
       }
       btn.disabled = false;
     }
 
-    // خاصية قراءة الباركود
+    // قارئ الباركود
     let html5QrCode;
     function startScan() {
       document.getElementById("reader").style.display = "block";
@@ -162,10 +281,11 @@
             html5QrCode.clear();
             document.getElementById("reader").style.display = "none";
             fetchSizes();
+            focusProductId();
           });
         },
         (errorMessage) => {
-          // يمكن تجاهل الأخطاء البسيطة هنا
+          // تجاهل الأخطاء البسيطة
         }
       ).catch(err => {
         alert("تعذر فتح الكاميرا: " + err);
