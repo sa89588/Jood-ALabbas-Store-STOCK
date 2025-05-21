@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تجهيز الطلبات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f5f5f5;
+      text-align: center;
+    }
+    input, select, button {
+      font-size: 18px;
+      margin: 10px;
+      padding: 10px;
+      width: 90%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    #sizesBox {
+      margin-bottom: 20px;
+    }
+    #reader {
+      margin: 10px auto;
+      width: 300px;
+      max-width: 98vw;
+      display: none;
+    }
+    @media (max-width: 500px) {
+      body {
+        padding: 5px;
+      }
+      input, select, button {
+        font-size: 16px;
+        width: 98%;
+        max-width: 98vw;
+        margin: 6px 0;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      #reader {
+        width: 98vw;
+        min-width: 200px;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <h2>📦 تجهيز الطلبات اليومية</h2>
+  <input type="text" id="productId" placeholder="أدخل ID المنتج" autofocus>
+  <button onclick="fetchSizes()">عرض القياسات</button>
+  <button onclick="startScan()">📷 قراءة الباركود</button>
+  <div id="reader"></div>
+
+  <div id="sizesBox" style="display:none;">
+    <select id="sizeSelect"></select><br>
+    <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
+  </div>
+
+  <p id="result"></p>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec'; 
+
+    // تركيز تلقائي على حقل ID عند تحميل الصفحة
+    window.onload = function() {
+      document.getElementById("productId").focus();
+    };
+
+    async function fetchSizes() {
+      document.getElementById("result").textContent = "";
+      document.getElementById("sizesBox").style.display = "none";
+      const id = document.getElementById("productId").value.trim();
+      if (!id) {
+        document.getElementById("result").textContent = "يرجى إدخال ID المنتج.";
+        document.getElementById("productId").focus();
+        return;
+      }
+      try {
+        const res = await fetch(`${scriptURL}?action=getSizes&id=${id}`);
+        const data = await res.json();
+
+        if (data.success && data.sizes.length > 0) {
+          const select = document.getElementById("sizeSelect");
+          select.innerHTML = "";
+          data.sizes.forEach(size => {
+            const option = document.createElement("option");
+            option.value = size;
+            option.textContent = size;
+            select.appendChild(option);
+          });
+          document.getElementById("sizesBox").style.display = "block";
+        } else {
+          document.getElementById("result").textContent = "❌ المنتج غير موجود أو لا توجد قياسات متاحة.";
+          document.getElementById("productId").focus();
+        }
+      } catch (e) {
+        document.getElementById("result").textContent = "حدث خطأ أثناء جلب القياسات.";
+        document.getElementById("productId").focus();
+      }
+    }
+
+    async function prepareOrder() {
+      document.getElementById("result").textContent = "";
+      const id = document.getElementById("productId").value.trim();
+      const size = document.getElementById("sizeSelect").value;
+      const btn = document.getElementById("prepareBtn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(scriptURL, {
+          method: 'POST',
+          body: JSON.stringify({ id, size, action: "prepareOrder" })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById("result").textContent = "✅ تم تجهيز الطلب بنجاح.";
+          document.getElementById("sizesBox").style.display = "none";
+          document.getElementById("productId").value = "";
+          document.getElementById("productId").focus();
+        } else {
+          document.getElementById("result").textContent = result.message || "❌ فشل في التجهيز.";
+          document.getElementById("productId").focus();
+        }
+      } catch (e) {
+        document.getElementById("result").textContent = "حدث خطأ أثناء تجهيز الطلب.";
+        document.getElementById("productId").focus();
+      }
+      btn.disabled = false;
+    }
+
+    // خاصية قراءة الباركود
+    let html5QrCode;
+    function startScan() {
+      document.getElementById("reader").style.display = "block";
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          scanBarcode();
+        });
+      } else {
+        scanBarcode();
+      }
+    }
+
+    function scanBarcode() {
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        (decodedText, decodedResult) => {
+          document.getElementById("productId").value = decodedText;
+          html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            document.getElementById("reader").style.display = "none";
+            fetchSizes();
+          });
+        },
+        (errorMessage) => {
+          // يمكن تجاهل الأخطاء البسيطة هنا
+        }
+      ).catch(err => {
+        alert("تعذر فتح الكاميرا: " + err);
+        document.getElementById("reader").style.display = "none";
+      });
+    }
+  </script>
+</body>
+</html>
