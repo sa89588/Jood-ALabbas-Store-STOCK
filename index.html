@@ -146,18 +146,21 @@
 <body>
   <div class="container">
     <h2>📦 تجهيز الطلبات اليومية</h2>
-    <div class="input-row">
-      <input type="text" id="productId" placeholder="أدخل ID المنتج" autocomplete="off" autofocus>
-      <button class="barcode-btn" onclick="startScan()" title="قراءة الباركود" tabindex="0">📷</button>
-    </div>
-    <button onclick="fetchSizes()">عرض القياسات</button>
+<div id="modelsContainer">
+  <div class="input-row">
+    <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+    <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
+  </div>
+</div>
+    <button onclick="addModel()">إضافة موديل آخر</button>
+    <button onclick="fetchAllSizes()">عرض القياسات</button>
     <button onclick="clearForm()">مسح</button>
     <div id="reader"></div>
 
-    <div id="sizesBox" style="display:none;">
-      <select id="sizeSelect"></select><br>
-      <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
-    </div>
+  <div id="sizesBox" style="display:none;">
+  <div id="sizesCheckboxes"></div>
+  <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
+</div>
 
     <p id="result"></p>
   </div>
@@ -166,19 +169,27 @@
 
     // تركيز تلقائي على حقل ID عند تحميل الصفحة
     function focusProductId() {
-      const input = document.getElementById("productId");
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-    }
+  const input = document.querySelector(".productId");
+  if (input) {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+}
     window.onload = focusProductId;
 
-    function clearForm() {
-      document.getElementById("productId").value = "";
-      document.getElementById("sizesBox").style.display = "none";
-      document.getElementById("result").textContent = "";
-      document.getElementById("result").className = "";
-      focusProductId();
-    }
+function clearForm() {
+  // امسح كل الحقول
+  document.getElementById("modelsContainer").innerHTML = `
+    <div class="input-row">
+      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+      <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
+    </div>
+  `;
+  document.getElementById("sizesBox").style.display = "none";
+  document.getElementById("result").textContent = "";
+  document.getElementById("result").className = "";
+  focusProductId();
+}
 
     async function fetchSizes() {
       document.getElementById("result").textContent = "جاري التحميل...";
@@ -196,17 +207,21 @@
         const data = await res.json();
 
         if (data.success && data.sizes.length > 0) {
-          const select = document.getElementById("sizeSelect");
-          select.innerHTML = "";
-          data.sizes.forEach(size => {
-            const option = document.createElement("option");
-            option.value = size;
-            option.textContent = size;
-            select.appendChild(option);
-          });
-          document.getElementById("sizesBox").style.display = "block";
-          document.getElementById("result").textContent = "";
-          document.getElementById("result").className = "";
+  const sizesDiv = document.getElementById("sizesCheckboxes");
+  sizesDiv.innerHTML = "";
+  data.sizes.forEach(size => {
+    const label = document.createElement("label");
+    label.style.marginLeft = "12px";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = size;
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(" " + size));
+    sizesDiv.appendChild(label);
+  });
+  document.getElementById("sizesBox").style.display = "block";
+  document.getElementById("result").textContent = "";
+  document.getElementById("result").className = "";
         } else {
           document.getElementById("result").textContent = "❌ المنتج غير موجود أو لا توجد قياسات متاحة.";
           document.getElementById("result").className = "error";
@@ -218,80 +233,184 @@
         focusProductId();
       }
     }
+async function fetchAllSizes() {
+  document.getElementById("result").textContent = "جاري التحميل...";
+  document.getElementById("result").className = "";
+  document.getElementById("sizesBox").style.display = "none";
+  const ids = Array.from(document.querySelectorAll(".productId"))
+    .map(input => input.value.trim())
+    .filter(val => val);
 
-    async function prepareOrder() {
-      document.getElementById("result").textContent = "جاري تجهيز الطلب...";
-      document.getElementById("result").className = "";
-      const id = document.getElementById("productId").value.trim();
-      const size = document.getElementById("sizeSelect").value;
-      const btn = document.getElementById("prepareBtn");
-      btn.disabled = true;
+  if (ids.length === 0) {
+    document.getElementById("result").textContent = "يرجى إدخال ID واحد على الأقل.";
+    document.getElementById("result").className = "error";
+    return;
+  }
 
+  let allSizes = [];
+  for (const id of ids) {
+    try {
+      const res = await fetch(`${scriptURL}?action=getSizes&id=${id}`);
+      const data = await res.json();
+      if (data.success && data.sizes.length > 0) {
+        allSizes.push({ id, sizes: data.sizes });
+      } else {
+        allSizes.push({ id, sizes: [], error: "❌ المنتج غير موجود أو لا توجد قياسات متاحة." });
+      }
+    } catch {
+      allSizes.push({ id, sizes: [], error: "حدث خطأ أثناء جلب القياسات." });
+    }
+  }
+
+  // عرض القياسات لكل موديل
+  const sizesDiv = document.getElementById("sizesCheckboxes");
+  sizesDiv.innerHTML = "";
+  allSizes.forEach(model => {
+    const title = document.createElement("div");
+    title.style.fontWeight = "bold";
+    title.textContent = `الموديل: ${model.id}`;
+    sizesDiv.appendChild(title);
+
+    if (model.sizes.length > 0) {
+      model.sizes.forEach(size => {
+        const label = document.createElement("label");
+        label.style.marginLeft = "12px";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = size;
+        checkbox.dataset.modelId = model.id;
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(" " + size));
+        sizesDiv.appendChild(label);
+      });
+    } else {
+      const err = document.createElement("div");
+      err.style.color = "red";
+      err.textContent = model.error;
+      sizesDiv.appendChild(err);
+    }
+    sizesDiv.appendChild(document.createElement("hr"));
+  });
+
+  document.getElementById("sizesBox").style.display = "block";
+  document.getElementById("result").textContent = "";
+  document.getElementById("result").className = "";
+}
+
+async function prepareOrder() {
+  document.getElementById("result").textContent = "جاري تجهيز الطلب...";
+  document.getElementById("result").className = "";
+  const btn = document.getElementById("prepareBtn");
+  btn.disabled = true;
+
+  // جمع كل الموديلات والقياسات المختارة
+  const checked = Array.from(document.querySelectorAll("#sizesCheckboxes input[type=checkbox]:checked"));
+  const grouped = {};
+  checked.forEach(cb => {
+    const id = cb.dataset.modelId;
+    if (!grouped[id]) grouped[id] = [];
+    grouped[id].push(cb.value);
+  });
+
+  if (checked.length === 0) {
+    document.getElementById("result").textContent = "يرجى اختيار قياس واحد على الأقل.";
+    document.getElementById("result").className = "error";
+    btn.disabled = false;
+    return;
+  }
+
+  let allSuccess = true;
+  let messages = [];
+  for (const id in grouped) {
+    for (const size of grouped[id]) {
       try {
         const res = await fetch(scriptURL, {
           method: 'POST',
           body: JSON.stringify({ id, size, action: "prepareOrder" })
         });
-
         const result = await res.json();
-        if (result.success) {
-          document.getElementById("result").textContent = "✅ تم تجهيز الطلب بنجاح.";
-          document.getElementById("result").className = "success";
-          document.getElementById("sizesBox").style.display = "none";
-          document.getElementById("productId").value = "";
-          focusProductId();
-        } else {
-          document.getElementById("result").textContent = result.message || "❌ فشل في التجهيز.";
-          document.getElementById("result").className = "error";
-          focusProductId();
+        if (!result.success) {
+          allSuccess = false;
+          messages.push(result.message || `فشل تجهيز الموديل ${id} القياس ${size}`);
         }
       } catch (e) {
-        document.getElementById("result").textContent = "حدث خطأ أثناء تجهيز الطلب.";
-        document.getElementById("result").className = "error";
-        focusProductId();
+        allSuccess = false;
+        messages.push(`خطأ في تجهيز الموديل ${id} القياس ${size}`);
       }
-      btn.disabled = false;
     }
+  }
 
-    // قارئ الباركود
+  if (allSuccess) {
+    document.getElementById("result").textContent = "✅ تم تجهيز جميع الطلبات بنجاح.";
+    document.getElementById("result").className = "success";
+    document.getElementById("sizesBox").style.display = "none";
+    document.getElementById("modelsContainer").innerHTML = `
+      <div class="input-row">
+        <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+        <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
+      </div>
+    `;
+  } else {
+    document.getElementById("result").textContent = messages.join(" | ");
+    document.getElementById("result").className = "error";
+  }
+  btn.disabled = false;
+}
     let html5QrCode;
-    function startScan() {
-      document.getElementById("reader").style.display = "block";
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-          scanBarcode();
-        });
-      } else {
-        scanBarcode();
-      }
-    }
+function startScan(btn) {
+  document.getElementById("reader").style.display = "block";
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => {
+      html5QrCode.clear();
+      scanBarcode(btn);
+    });
+  } else {
+    scanBarcode(btn);
+  }
+}
 
-    function scanBarcode() {
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: 250
-        },
-        (decodedText, decodedResult) => {
-          document.getElementById("productId").value = decodedText;
-          html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            document.getElementById("reader").style.display = "none";
-            fetchSizes();
-            focusProductId();
-          });
-        },
-        (errorMessage) => {
-          // تجاهل الأخطاء البسيطة
-        }
-      ).catch(err => {
-        alert("تعذر فتح الكاميرا: " + err);
+function scanBarcode(btn) {
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: 250
+    },
+    (decodedText, decodedResult) => {
+      // حدد الحقل الصحيح بناءً على الزر
+      const input = btn ? btn.parentElement.querySelector(".productId") : document.querySelector(".productId");
+      if (input) input.value = decodedText;
+      html5QrCode.stop().then(() => {
+        html5QrCode.clear();
         document.getElementById("reader").style.display = "none";
+        focusProductId();
       });
+    },
+    (errorMessage) => {
+      // تجاهل الأخطاء البسيطة
     }
+  ).catch(err => {
+    alert("تعذر فتح الكاميرا: " + err);
+    document.getElementById("reader").style.display = "none";
+  });
+}
+  document.addEventListener("keydown", function(e) {
+  // تجهيز عند الضغط على Enter إذا كان صندوق القياسات ظاهر
+  if (e.key === "Enter" && document.getElementById("sizesBox").style.display === "block") {
+    prepareOrder();
+  }
+});
+function addModel() {
+  const container = document.getElementById("modelsContainer");
+  const div = document.createElement("div");
+  div.className = "input-row";
+  div.innerHTML = `
+    <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+    <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
+  `;
+  container.appendChild(div);
+}
   </script>
 </body>
 </html>
