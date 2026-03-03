@@ -3,415 +3,563 @@
 <head>
   <meta charset="UTF-8">
   <title>تجهيز الطلبات</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link rel="icon" href="📦">
   <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Cairo', sans-serif;
+    }
     body {
-      font-family: 'Cairo', Arial, sans-serif;
-      padding: 0;
-      margin: 0;
-      background: linear-gradient(135deg, #f5f5f5 60%, #e0e7ff 100%);
+      background: linear-gradient(145deg, #f0f2f5 0%, #e6e9f0 100%);
       min-height: 100vh;
-      text-align: center;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
     }
     .container {
-      background: #fff;
-      margin: 30px auto;
-      padding: 24px 18px 18px 18px;
-      border-radius: 18px;
-      box-shadow: 0 2px 16px #0001;
-      max-width: 420px;
-      width: 98vw;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(2px);
+      width: 100%;
+      max-width: 520px;
+      border-radius: 28px;
+      padding: 20px 18px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.5);
     }
     h2 {
-      margin-bottom: 24px;
-      color: #3b3b3b;
-      font-size: 2rem;
-      letter-spacing: 1px;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 18px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      letter-spacing: -0.5px;
+    }
+    h2 span {
+      background: #2563eb;
+      color: white;
+      font-size: 0.9rem;
+      padding: 2px 12px;
+      border-radius: 40px;
+      font-weight: 400;
     }
     .input-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+      padding: 4px 4px 4px 8px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      transition: 0.15s;
     }
-    #productId {
+    .input-row:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .productId {
       flex: 1;
-      font-size: 18px;
-      padding: 10px 12px;
-      border: 1.5px solid #bdbdbd;
-      border-radius: 8px;
-      outline: none;
-      transition: border 0.2s;
-      background: #fafbff;
-    }
-    #productId:focus {
-      border: 2px solid #6366f1;
-      background: #f0f4ff;
-    }
-    .barcode-btn {
-      background: #6366f1;
-      color: #fff;
       border: none;
-      border-radius: 8px;
+      background: transparent;
+      padding: 12px 8px;
+      font-size: 16px;
+      outline: none;
+      color: #0f172a;
+    }
+    .productId::placeholder {
+      color: #94a3b8;
+    }
+    .icon-btn {
+      background: #ffffff;
+      border: none;
       width: 44px;
       height: 44px;
+      border-radius: 14px;
       font-size: 22px;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.2s;
+      color: #1e293b;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      transition: 0.15s;
+      border: 1px solid #e2e8f0;
     }
-    .barcode-btn:hover, .barcode-btn:focus {
-      background: #4f46e5;
+    .icon-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      transform: scale(0.96);
     }
-    button:not(.barcode-btn) {
-      background: #6366f1;
-      color: #fff;
+    .icon-btn.remove-btn {
+      color: #b91c1c;
+    }
+    .icon-btn.remove-btn:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+    }
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      margin: 20px 0 10px;
+      flex-wrap: wrap;
+    }
+    .primary-btn, .secondary-btn {
+      flex: 1 1 auto;
       border: none;
-      border-radius: 8px;
-      padding: 10px 0;
-      font-size: 18px;
-      margin: 8px 0;
-      width: 100%;
+      padding: 12px 6px;
+      border-radius: 18px;
+      font-size: 16px;
+      font-weight: 600;
+      background: white;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
       cursor: pointer;
-      transition: background 0.2s;
-      box-shadow: 0 1px 4px #0001;
+      transition: 0.12s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
-    button:not(.barcode-btn):hover, button:not(.barcode-btn):focus {
-      background: #4f46e5;
+    .primary-btn {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+      box-shadow: 0 8px 14px -6px #2563eb80;
     }
-    #sizesBox {
-      margin-bottom: 20px;
+    .primary-btn:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
     }
-    select {
-      font-size: 18px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1.5px solid #bdbdbd;
-      width: 100%;
-      margin-bottom: 10px;
-      background: #fafbff;
+    .secondary-btn:hover {
+      background: #f1f5f9;
     }
-    #result.success { color: #059669; font-weight: bold; }
-    #result.error { color: #dc2626; font-weight: bold; }
+    .primary-btn:disabled, .secondary-btn:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
     #reader {
-      margin: 12px auto 0 auto;
-      width: 320px;
-      max-width: 98vw;
-      display: none;
-      border-radius: 12px;
+      margin: 20px 0;
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: 0 2px 12px #0002;
-      background: #fff;
+      display: none;
+      border: 2px solid #2563eb40;
+      background: #000;
     }
-    @media (max-width: 600px) {
-      .container {
-        margin: 8px auto;
-        padding: 10px 2vw 14px 2vw;
-        border-radius: 10px;
-      }
-      h2 {
-        font-size: 1.2rem;
-        margin-bottom: 14px;
-      }
-      .input-row {
-        flex-direction: row;
-        gap: 4px;
-        margin-bottom: 10px;
-      }
-      #productId, select {
-        font-size: 15px;
-        padding: 8px 6px;
-        border-radius: 6px;
-      }
-      .barcode-btn, button:not(.barcode-btn) {
-        font-size: 17px;
-        border-radius: 7px;
-        height: 38px;
-        min-width: 38px;
-        padding: 0;
-      }
-      #reader {
-        width: 98vw;
-        min-width: 180px;
-        border-radius: 8px;
-      }
+    .sizes-section {
+      background: #f1f4f9;
+      border-radius: 24px;
+      padding: 16px;
+      margin: 18px 0 8px;
+    }
+    .model-group {
+      background: white;
+      border-radius: 20px;
+      padding: 12px;
+      margin-bottom: 14px;
+      border: 1px solid #e2e8f0;
+    }
+    .model-title {
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+    .model-title .badge {
+      background: #2563eb10;
+      color: #2563eb;
+      padding: 2px 8px;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      font-weight: 400;
+    }
+    .size-checkbox {
+      display: inline-flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 30px;
+      padding: 6px 12px 6px 6px;
+      margin: 4px;
+      font-size: 15px;
+    }
+    .size-checkbox input {
+      margin-left: 6px;
+      width: 18px;
+      height: 18px;
+      accent-color: #2563eb;
+    }
+    .select-all-btn {
+      background: none;
+      border: 1px dashed #94a3b8;
+      border-radius: 30px;
+      padding: 4px 14px;
+      font-size: 13px;
+      margin-right: 8px;
+      cursor: pointer;
+      color: #334155;
+    }
+    .select-all-btn:hover {
+      background: #e2e8f0;
+    }
+    .error-msg {
+      color: #b91c1c;
+      font-size: 14px;
+      padding: 6px 10px;
+      background: #fee2e2;
+      border-radius: 16px;
+      display: inline-block;
+    }
+    .success-msg {
+      color: #166534;
+      background: #dcfce7;
+      padding: 12px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    hr {
+      border: none;
+      border-top: 2px dashed #cbd5e1;
+      margin: 8px 0;
+    }
+    .loader {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid #ffffff80;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #result {
+      min-height: 50px;
     }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-  <div class="container">
-    <h2>📦 تجهيز الطلبات اليومية</h2>
-<div id="modelsContainer">
-  <div class="input-row">
-    <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
-    <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
-  </div>
-</div>
-    <button onclick="addModel()">إضافة موديل آخر</button>
-    <button onclick="fetchAllSizes()">عرض القياسات</button>
-    <button onclick="clearForm()">مسح</button>
-    <div id="reader"></div>
+<div class="container">
+  <h2>📦 تجهيز الطلبات <span>v2</span></h2>
 
-  <div id="sizesBox" style="display:none;">
-  <div id="sizesCheckboxes"></div>
-  <button id="prepareBtn" onclick="prepareOrder()">تجهيز الطلب</button>
-</div>
-
-    <p id="result"></p>
-  </div>
-  <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec'; 
-
-    // تركيز تلقائي على حقل ID عند تحميل الصفحة
-    function focusProductId() {
-  const input = document.querySelector(".productId");
-  if (input) {
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-  }
-}
-    window.onload = focusProductId;
-
-function clearForm() {
-  // امسح كل الحقول
-  document.getElementById("modelsContainer").innerHTML = `
+  <!-- حقول المنتجات -->
+  <div id="modelsContainer">
     <div class="input-row">
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
-      <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
+      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
+      <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     </div>
-  `;
-  document.getElementById("sizesBox").style.display = "none";
-  document.getElementById("result").textContent = "";
-  document.getElementById("result").className = "";
-  focusProductId();
-}
+  </div>
 
-    async function fetchSizes() {
-      document.getElementById("result").textContent = "جاري التحميل...";
-      document.getElementById("result").className = "";
-      document.getElementById("sizesBox").style.display = "none";
-      const id = document.getElementById("productId").value.trim();
-      if (!id) {
-        document.getElementById("result").textContent = "يرجى إدخال ID المنتج.";
-        document.getElementById("result").className = "error";
-        focusProductId();
-        return;
-      }
-      try {
-        const res = await fetch(`${scriptURL}?action=getSizes&id=${id}`);
-        const data = await res.json();
+  <!-- أزرار الإجراءات -->
+  <div class="action-bar">
+    <button class="secondary-btn" onclick="addModel()">➕ إضافة</button>
+    <button class="primary-btn" onclick="fetchAllSizes()" id="fetchBtn">🔍 عرض القياسات</button>
+    <button class="secondary-btn" onclick="clearForm()">🧹 مسح</button>
+  </div>
 
-        if (data.success && data.sizes.length > 0) {
-  const sizesDiv = document.getElementById("sizesCheckboxes");
-  sizesDiv.innerHTML = "";
-  data.sizes.forEach(size => {
-    const label = document.createElement("label");
-    label.style.marginLeft = "12px";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = size;
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(" " + size));
-    sizesDiv.appendChild(label);
-  });
-  document.getElementById("sizesBox").style.display = "block";
-  document.getElementById("result").textContent = "";
-  document.getElementById("result").className = "";
-        } else {
-          document.getElementById("result").textContent = "❌ المنتج غير موجود أو لا توجد قياسات متاحة.";
-          document.getElementById("result").className = "error";
-          focusProductId();
-        }
-      } catch (e) {
-        document.getElementById("result").textContent = "حدث خطأ أثناء جلب القياسات.";
-        document.getElementById("result").className = "error";
-        focusProductId();
-      }
-    }
-async function fetchAllSizes() {
-  document.getElementById("result").textContent = "جاري التحميل...";
-  document.getElementById("result").className = "";
-  document.getElementById("sizesBox").style.display = "none";
-  const ids = Array.from(document.querySelectorAll(".productId"))
-    .map(input => input.value.trim())
-    .filter(val => val);
+  <!-- مكان عرض الكاميرا -->
+  <div id="reader"></div>
 
-  if (ids.length === 0) {
-    document.getElementById("result").textContent = "يرجى إدخال ID واحد على الأقل.";
-    document.getElementById("result").className = "error";
-    return;
-  }
+  <!-- منطقة عرض القياسات (تظهر بعد جلب البيانات) -->
+  <div id="sizesBox" style="display:none;" class="sizes-section">
+    <div id="sizesCheckboxes"></div>
+    <button class="primary-btn" id="prepareBtn" onclick="prepareOrder()" style="width:100%; margin-top:16px;">تجهيز الطلب</button>
+  </div>
 
-  let allSizes = [];
-  for (const id of ids) {
-    try {
-      const res = await fetch(`${scriptURL}?action=getSizes&id=${id}`);
-      const data = await res.json();
-      if (data.success && data.sizes.length > 0) {
-        allSizes.push({ id, sizes: data.sizes });
-      } else {
-        allSizes.push({ id, sizes: [], error: "❌ المنتج غير موجود أو لا توجد قياسات متاحة." });
-      }
-    } catch {
-      allSizes.push({ id, sizes: [], error: "حدث خطأ أثناء جلب القياسات." });
+  <!-- رسائل النتائج -->
+  <div id="result"></div>
+</div>
+
+<script>
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec';
+  let html5QrCode = null;
+  let activeScanButton = null;
+
+  // ========== دوال مساعدة ==========
+  function showLoading(btn, text = 'جاري...') {
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.original = btn.innerText;
+      btn.innerHTML = `<span class="loader" style="border-top-color: #2563eb;"></span> ${text}`;
     }
   }
-
-  // عرض القياسات لكل موديل
-  const sizesDiv = document.getElementById("sizesCheckboxes");
-  sizesDiv.innerHTML = "";
-  allSizes.forEach(model => {
-    const title = document.createElement("div");
-    title.style.fontWeight = "bold";
-    title.textContent = `الموديل: ${model.id}`;
-    sizesDiv.appendChild(title);
-
-    if (model.sizes.length > 0) {
-      model.sizes.forEach(size => {
-        const label = document.createElement("label");
-        label.style.marginLeft = "12px";
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = size;
-        checkbox.dataset.modelId = model.id;
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(" " + size));
-        sizesDiv.appendChild(label);
-      });
-    } else {
-      const err = document.createElement("div");
-      err.style.color = "red";
-      err.textContent = model.error;
-      sizesDiv.appendChild(err);
-    }
-    sizesDiv.appendChild(document.createElement("hr"));
-  });
-
-  document.getElementById("sizesBox").style.display = "block";
-  document.getElementById("result").textContent = "";
-  document.getElementById("result").className = "";
-}
-
-async function prepareOrder() {
-  document.getElementById("result").textContent = "جاري تجهيز الطلب...";
-  document.getElementById("result").className = "";
-  const btn = document.getElementById("prepareBtn");
-  btn.disabled = true;
-
-  // جمع كل الموديلات والقياسات المختارة
-  const checked = Array.from(document.querySelectorAll("#sizesCheckboxes input[type=checkbox]:checked"));
-  const grouped = {};
-  checked.forEach(cb => {
-    const id = cb.dataset.modelId;
-    if (!grouped[id]) grouped[id] = [];
-    grouped[id].push(cb.value);
-  });
-
-  if (checked.length === 0) {
-    document.getElementById("result").textContent = "يرجى اختيار قياس واحد على الأقل.";
-    document.getElementById("result").className = "error";
-    btn.disabled = false;
-    return;
-  }
-
-  let allSuccess = true;
-  let messages = [];
-  for (const id in grouped) {
-    for (const size of grouped[id]) {
-      try {
-        const res = await fetch(scriptURL, {
-          method: 'POST',
-          body: JSON.stringify({ id, size, action: "prepareOrder" })
-        });
-        const result = await res.json();
-        if (!result.success) {
-          allSuccess = false;
-          messages.push(result.message || `فشل تجهيز الموديل ${id} القياس ${size}`);
-        }
-      } catch (e) {
-        allSuccess = false;
-        messages.push(`خطأ في تجهيز الموديل ${id} القياس ${size}`);
-      }
+  function hideLoading(btn) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = btn.dataset.original || btn.innerText;
     }
   }
+  function focusFirstInput() {
+    const input = document.querySelector('.productId');
+    if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+  }
+  function showMessage(text, isSuccess = true) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `<div class="${isSuccess ? 'success-msg' : 'error-msg'}">${text}</div>`;
+  }
+  function clearMessage() {
+    document.getElementById('result').innerHTML = '';
+  }
 
-  if (allSuccess) {
-    document.getElementById("result").textContent = "✅ تم تجهيز جميع الطلبات بنجاح.";
-    document.getElementById("result").className = "success";
-    document.getElementById("sizesBox").style.display = "none";
-    document.getElementById("modelsContainer").innerHTML = `
-      <div class="input-row">
-        <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
-        <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
-      </div>
+  // ========== إدارة الحقول الديناميكية ==========
+  function addModel() {
+    const container = document.getElementById('modelsContainer');
+    const div = document.createElement('div');
+    div.className = 'input-row';
+    div.innerHTML = `
+      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
+      <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     `;
-  } else {
-    document.getElementById("result").textContent = messages.join(" | ");
-    document.getElementById("result").className = "error";
+    container.appendChild(div);
+    div.querySelector('.productId').focus();
   }
-  btn.disabled = false;
-}
-    let html5QrCode;
-function startScan(btn) {
-  document.getElementById("reader").style.display = "block";
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      html5QrCode.clear();
-      scanBarcode(btn);
-    });
-  } else {
-    scanBarcode(btn);
-  }
-}
 
-function scanBarcode(btn) {
-  html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: 250
-    },
-    (decodedText, decodedResult) => {
-      // حدد الحقل الصحيح بناءً على الزر
-      const input = btn ? btn.parentElement.querySelector(".productId") : document.querySelector(".productId");
-      if (input) input.value = decodedText;
+  function removeRow(btn) {
+    const row = btn.closest('.input-row');
+    if (document.querySelectorAll('.input-row').length > 1) {
+      row.remove();
+    } else {
+      // إذا كان الوحيد، فقط امسح محتواه
+      row.querySelector('.productId').value = '';
+      row.querySelector('.productId').focus();
+    }
+  }
+
+  // ========== مسح الباركود ==========
+  function startScan(btn) {
+    activeScanButton = btn;
+    const readerDiv = document.getElementById('reader');
+    readerDiv.style.display = 'block';
+
+    if (html5QrCode) {
       html5QrCode.stop().then(() => {
         html5QrCode.clear();
-        document.getElementById("reader").style.display = "none";
-        focusProductId();
-      });
-    },
-    (errorMessage) => {
-      // تجاهل الأخطاء البسيطة
+        initScanner();
+      }).catch(() => initScanner());
+    } else {
+      initScanner();
     }
-  ).catch(err => {
-    alert("تعذر فتح الكاميرا: " + err);
-    document.getElementById("reader").style.display = "none";
-  });
-}
-  document.addEventListener("keydown", function(e) {
-  // تجهيز عند الضغط على Enter إذا كان صندوق القياسات ظاهر
-  if (e.key === "Enter" && document.getElementById("sizesBox").style.display === "block") {
-    prepareOrder();
   }
-});
-function addModel() {
-  const container = document.getElementById("modelsContainer");
-  const div = document.createElement("div");
-  div.className = "input-row";
-  div.innerHTML = `
-    <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
-    <button class="barcode-btn" onclick="startScan(this)" title="قراءة الباركود" tabindex="0">📷</button>
-  `;
-  container.appendChild(div);
-}
-  </script>
+
+  function initScanner() {
+    html5QrCode = new Html5Qrcode('reader');
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        // إدخال القيمة في الحقل المرتبط بالزر
+        if (activeScanButton) {
+          const row = activeScanButton.closest('.input-row');
+          const input = row ? row.querySelector('.productId') : document.querySelector('.productId');
+          if (input) input.value = decodedText;
+        }
+        // إيقاف الكاميرا
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          document.getElementById('reader').style.display = 'none';
+          focusFirstInput();
+        }).catch(console.warn);
+      },
+      (error) => { /* تجاهل أخطاء القراءة */ }
+    ).catch(err => {
+      alert('لا يمكن الوصول للكاميرا: ' + err);
+      document.getElementById('reader').style.display = 'none';
+    });
+  }
+
+  // ========== جلب القياسات لجميع المعرفات ==========
+  async function fetchAllSizes() {
+    const fetchBtn = document.getElementById('fetchBtn');
+    showLoading(fetchBtn, 'جلب القياسات...');
+    clearMessage();
+    document.getElementById('sizesBox').style.display = 'none';
+
+    const ids = Array.from(document.querySelectorAll('.productId'))
+      .map(inp => inp.value.trim())
+      .filter(v => v !== '');
+
+    if (ids.length === 0) {
+      showMessage('❌ أدخل معرف واحد على الأقل.', false);
+      hideLoading(fetchBtn);
+      return;
+    }
+
+    try {
+      // طلب جميع المعرفات بشكل متوازي (Promise.all)
+      const requests = ids.map(id => 
+        fetch(`${scriptURL}?action=getSizes&id=${encodeURIComponent(id)}`)
+          .then(res => res.json())
+          .then(data => ({ id, success: data.success, sizes: data.sizes || [], error: null }))
+          .catch(err => ({ id, success: false, sizes: [], error: 'فشل الاتصال' }))
+      );
+
+      const results = await Promise.all(requests);
+
+      // تصفية النتائج الناجحة والفاشلة
+      const successful = results.filter(r => r.success && r.sizes.length > 0);
+      const failed = results.filter(r => !r.success || r.sizes.length === 0);
+
+      // بناء واجهة القياسات
+      const container = document.getElementById('sizesCheckboxes');
+      container.innerHTML = '';
+
+      if (successful.length === 0) {
+        container.innerHTML = '<div class="error-msg">لا توجد قياسات متاحة لأي من المعرفات.</div>';
+        document.getElementById('sizesBox').style.display = 'block';
+        hideLoading(fetchBtn);
+        return;
+      }
+
+      successful.forEach(model => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'model-group';
+        groupDiv.dataset.modelId = model.id;
+
+        // العنوان مع زر تحديد الكل
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'model-title';
+        titleDiv.innerHTML = `
+          <span>🆔 ${model.id}</span>
+          <span class="badge">${model.sizes.length} قياس</span>
+          <button class="select-all-btn" onclick="toggleSelectAll(this)">✔️ تحديد الكل</button>
+        `;
+        groupDiv.appendChild(titleDiv);
+
+        // إضافة مربعات القياسات
+        model.sizes.forEach(size => {
+          const label = document.createElement('label');
+          label.className = 'size-checkbox';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = size;
+          cb.dataset.modelId = model.id;  // ربط المعرف
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(' ' + size));
+          groupDiv.appendChild(label);
+        });
+
+        container.appendChild(groupDiv);
+      });
+
+      // عرض الأخطاء إن وجدت
+      if (failed.length > 0) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'error-msg';
+        errDiv.style.marginTop = '10px';
+        errDiv.innerText = `⚠️ لم يتم العثور على قياسات للمعرفات: ${failed.map(f => f.id).join('، ')}`;
+        container.appendChild(errDiv);
+      }
+
+      document.getElementById('sizesBox').style.display = 'block';
+      hideLoading(fetchBtn);
+    } catch (error) {
+      showMessage('حدث خطأ غير متوقع.', false);
+      hideLoading(fetchBtn);
+    }
+  }
+
+  // تحديد الكل / إلغاء الكل لمجموعة معينة
+  function toggleSelectAll(btn) {
+    const group = btn.closest('.model-group');
+    const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+  }
+
+  // ========== تجهيز الطلب (إرسال متوازي) ==========
+  async function prepareOrder() {
+    const prepareBtn = document.getElementById('prepareBtn');
+    showLoading(prepareBtn, 'جاري التجهيز...');
+    clearMessage();
+
+    // جمع جميع القياسات المحددة مع معرف الموديل
+    const selected = [];
+    document.querySelectorAll('#sizesCheckboxes input[type="checkbox"]:checked').forEach(cb => {
+      selected.push({
+        id: cb.dataset.modelId,
+        size: cb.value
+      });
+    });
+
+    if (selected.length === 0) {
+      showMessage('❌ اختر قياساً واحداً على الأقل.', false);
+      hideLoading(prepareBtn);
+      return;
+    }
+
+    // إرسال الطلبات بشكل متوازي (Promise.allSettled لمعرفة الناجح والفاشل)
+    const requests = selected.map(item =>
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ id: item.id, size: item.size, action: 'prepareOrder' })
+      })
+      .then(res => res.json())
+      .then(result => ({ ...item, success: result.success, message: result.message }))
+      .catch(() => ({ ...item, success: false, message: 'فشل الاتصال بالخادم' }))
+    );
+
+    const results = await Promise.allSettled(requests);
+    const fulfilled = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const succeeded = fulfilled.filter(r => r.success);
+    const failed = fulfilled.filter(r => !r.success);
+
+    if (failed.length === 0) {
+      showMessage(`✅ تم تجهيز ${succeeded.length} طلب بنجاح.`, true);
+      // إخفاء صندوق القياسات وإعادة تعيين الحقول
+      document.getElementById('sizesBox').style.display = 'none';
+      // مسح الحقول except الأول
+      const rows = document.querySelectorAll('.input-row');
+      rows.forEach((row, index) => {
+        if (index === 0) row.querySelector('.productId').value = '';
+        else row.remove();
+      });
+      focusFirstInput();
+    } else {
+      const failedList = failed.map(f => `${f.id} (${f.size})`).join('، ');
+      showMessage(`❌ فشل ${failed.length} طلب: ${failedList}`, false);
+    }
+
+    hideLoading(prepareBtn);
+  }
+
+  // ========== مسح النموذج ==========
+  function clearForm() {
+    // إبقاء حقل واحد فقط فارغ
+    const container = document.getElementById('modelsContainer');
+    container.innerHTML = `
+      <div class="input-row">
+        <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+        <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
+        <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
+      </div>
+    `;
+    document.getElementById('sizesBox').style.display = 'none';
+    clearMessage();
+    focusFirstInput();
+  }
+
+  // ========== تشغيل عند الضغط على Enter ==========
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && document.getElementById('sizesBox').style.display === 'block') {
+      prepareOrder();
+    }
+  });
+
+  // تركيز تلقائي عند التحميل
+  window.onload = focusFirstInput;
+</script>
 </body>
 </html>
