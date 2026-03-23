@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تجهيز الطلبات</title>
+  <title>تجهيز الطلبات - نظام إدارة المبيعات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link rel="icon" href="📦">
   <style>
@@ -23,7 +23,7 @@
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(2px);
       width: 100%;
-      max-width: 520px;
+      max-width: 650px;
       border-radius: 28px;
       padding: 20px 18px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.05);
@@ -109,7 +109,7 @@
       margin: 20px 0 10px;
       flex-wrap: wrap;
     }
-    .primary-btn, .secondary-btn {
+    .primary-btn, .secondary-btn, .history-btn {
       flex: 1 1 auto;
       border: none;
       padding: 12px 6px;
@@ -137,10 +137,15 @@
       background: #1d4ed8;
       transform: translateY(-1px);
     }
-    .secondary-btn:hover {
+    .secondary-btn:hover, .history-btn:hover {
       background: #f1f5f9;
     }
-    .primary-btn:disabled, .secondary-btn:disabled {
+    .history-btn {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+    }
+    .primary-btn:disabled, .secondary-btn:disabled, .history-btn:disabled {
       opacity: 0.5;
       pointer-events: none;
     }
@@ -173,6 +178,7 @@
       gap: 6px;
       margin-bottom: 8px;
       font-size: 1.1rem;
+      flex-wrap: wrap;
     }
     .model-title .badge {
       background: #2563eb10;
@@ -245,13 +251,131 @@
     #result {
       min-height: 50px;
     }
+    /* سجل الطلبات */
+    .history-section {
+      background: #f8fafc;
+      border-radius: 24px;
+      padding: 16px;
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+      display: none;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .history-title {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    .close-history {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #64748b;
+    }
+    /* مجموعة الشهر */
+    .month-group {
+      margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      background: white;
+      overflow: hidden;
+    }
+    .month-header {
+      background: #f1f5f9;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .month-header:hover {
+      background: #e6edf5;
+    }
+    .month-header .month-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .month-header .toggle-icon {
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+    .month-header.open .toggle-icon {
+      transform: rotate(180deg);
+    }
+    .month-orders {
+      display: none;
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #e2e8f0;
+    }
+    .month-orders.open {
+      display: block;
+    }
+    .order-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+    .order-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #e2e8f0;
+    }
+    .order-info {
+      flex: 2;
+      font-size: 14px;
+    }
+    .order-info strong {
+      color: #1e293b;
+    }
+    .return-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .return-btn:hover {
+      background: #dc2626;
+    }
+    .no-orders {
+      text-align: center;
+      color: #64748b;
+      padding: 20px;
+    }
+    .loading-spinner {
+      text-align: center;
+      padding: 20px;
+      color: #2563eb;
+    }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
 <div class="container">
-  <h2>📦 تجهيز الطلبات <span>v2</span></h2>
+  <h2>📦 تجهيز الطلبات <span>v3</span></h2>
 
   <!-- حقول المنتجات -->
   <div id="modelsContainer">
@@ -267,6 +391,7 @@
     <button class="secondary-btn" onclick="addModel()">➕ إضافة</button>
     <button class="primary-btn" onclick="fetchAllSizes()" id="fetchBtn">🔍 عرض القياسات</button>
     <button class="secondary-btn" onclick="clearForm()">🧹 مسح</button>
+    <button class="history-btn" onclick="toggleHistory()">📜 سجل التجهيزات</button>
   </div>
 
   <!-- مكان عرض الكاميرا -->
@@ -278,12 +403,21 @@
     <button class="primary-btn" id="prepareBtn" onclick="prepareOrder()" style="width:100%; margin-top:16px;">تجهيز الطلب</button>
   </div>
 
+  <!-- سجل الطلبات السابقة -->
+  <div id="historyBox" class="history-section">
+    <div class="history-header">
+      <span class="history-title">📋 التجهيزات السابقة</span>
+      <button class="close-history" onclick="toggleHistory()">✖</button>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
   <!-- رسائل النتائج -->
   <div id="result"></div>
 </div>
 
 <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec';
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec'; // استخدم رابط النشر الخاص بك
   let html5QrCode = null;
   let activeScanButton = null;
 
@@ -308,6 +442,9 @@
   function showMessage(text, isSuccess = true) {
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = `<div class="${isSuccess ? 'success-msg' : 'error-msg'}">${text}</div>`;
+    setTimeout(() => {
+      if (resultDiv.innerHTML.includes(text)) resultDiv.innerHTML = '';
+    }, 5000);
   }
   function clearMessage() {
     document.getElementById('result').innerHTML = '';
@@ -332,7 +469,6 @@
     if (document.querySelectorAll('.input-row').length > 1) {
       row.remove();
     } else {
-      // إذا كان الوحيد، فقط امسح محتواه
       row.querySelector('.productId').value = '';
       row.querySelector('.productId').focus();
     }
@@ -360,13 +496,11 @@
       { facingMode: 'environment' },
       { fps: 10, qrbox: 250 },
       (decodedText) => {
-        // إدخال القيمة في الحقل المرتبط بالزر
         if (activeScanButton) {
           const row = activeScanButton.closest('.input-row');
           const input = row ? row.querySelector('.productId') : document.querySelector('.productId');
           if (input) input.value = decodedText;
         }
-        // إيقاف الكاميرا
         html5QrCode.stop().then(() => {
           html5QrCode.clear();
           document.getElementById('reader').style.display = 'none';
@@ -398,7 +532,6 @@
     }
 
     try {
-      // طلب جميع المعرفات بشكل متوازي (Promise.all)
       const requests = ids.map(id => 
         fetch(`${scriptURL}?action=getSizes&id=${encodeURIComponent(id)}`)
           .then(res => res.json())
@@ -407,12 +540,9 @@
       );
 
       const results = await Promise.all(requests);
-
-      // تصفية النتائج الناجحة والفاشلة
       const successful = results.filter(r => r.success && r.sizes.length > 0);
       const failed = results.filter(r => !r.success || r.sizes.length === 0);
 
-      // بناء واجهة القياسات
       const container = document.getElementById('sizesCheckboxes');
       container.innerHTML = '';
 
@@ -428,7 +558,6 @@
         groupDiv.className = 'model-group';
         groupDiv.dataset.modelId = model.id;
 
-        // العنوان مع زر تحديد الكل
         const titleDiv = document.createElement('div');
         titleDiv.className = 'model-title';
         titleDiv.innerHTML = `
@@ -438,14 +567,13 @@
         `;
         groupDiv.appendChild(titleDiv);
 
-        // إضافة مربعات القياسات
         model.sizes.forEach(size => {
           const label = document.createElement('label');
           label.className = 'size-checkbox';
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.value = size;
-          cb.dataset.modelId = model.id;  // ربط المعرف
+          cb.dataset.modelId = model.id;
           label.appendChild(cb);
           label.appendChild(document.createTextNode(' ' + size));
           groupDiv.appendChild(label);
@@ -454,7 +582,6 @@
         container.appendChild(groupDiv);
       });
 
-      // عرض الأخطاء إن وجدت
       if (failed.length > 0) {
         const errDiv = document.createElement('div');
         errDiv.className = 'error-msg';
@@ -471,7 +598,6 @@
     }
   }
 
-  // تحديد الكل / إلغاء الكل لمجموعة معينة
   function toggleSelectAll(btn) {
     const group = btn.closest('.model-group');
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
@@ -485,7 +611,6 @@
     showLoading(prepareBtn, 'جاري التجهيز...');
     clearMessage();
 
-    // جمع جميع القياسات المحددة مع معرف الموديل
     const selected = [];
     document.querySelectorAll('#sizesCheckboxes input[type="checkbox"]:checked').forEach(cb => {
       selected.push({
@@ -500,11 +625,10 @@
       return;
     }
 
-    // إرسال الطلبات بشكل متوازي (Promise.allSettled لمعرفة الناجح والفاشل)
     const requests = selected.map(item =>
       fetch(scriptURL, {
         method: 'POST',
-        body: JSON.stringify({ id: item.id, size: item.size, action: 'prepareOrder' })
+        body: JSON.stringify({ action: 'prepareOrder', id: item.id, size: item.size })
       })
       .then(res => res.json())
       .then(result => ({ ...item, success: result.success, message: result.message }))
@@ -518,26 +642,165 @@
 
     if (failed.length === 0) {
       showMessage(`✅ تم تجهيز ${succeeded.length} طلب بنجاح.`, true);
-      // إخفاء صندوق القياسات وإعادة تعيين الحقول
       document.getElementById('sizesBox').style.display = 'none';
-      // مسح الحقول except الأول
       const rows = document.querySelectorAll('.input-row');
       rows.forEach((row, index) => {
         if (index === 0) row.querySelector('.productId').value = '';
         else row.remove();
       });
       focusFirstInput();
+      // إذا كان السجل مفتوحًا، نحدثه تلقائيًا
+      if (document.getElementById('historyBox').style.display === 'block') {
+        loadSalesLog();
+      }
     } else {
       const failedList = failed.map(f => `${f.id} (${f.size})`).join('، ');
       showMessage(`❌ فشل ${failed.length} طلب: ${failedList}`, false);
     }
-
     hideLoading(prepareBtn);
+  }
+
+  // ========== عرض وإخفاء سجل الطلبات ==========
+  function toggleHistory() {
+    const historyBox = document.getElementById('historyBox');
+    if (historyBox.style.display === 'block') {
+      historyBox.style.display = 'none';
+    } else {
+      historyBox.style.display = 'block';
+      loadSalesLog();
+    }
+  }
+
+  // ========== عرض السجل مقسماً حسب الشهر مع تحميل الصور عند الفتح ==========
+  async function loadSalesLog() {
+    const ordersDiv = document.getElementById('ordersList');
+    ordersDiv.innerHTML = '<div class="loading-spinner">جاري تحميل السجل...</div>';
+    try {
+      const response = await fetch(`${scriptURL}?action=getSalesLog`);
+      let orders = await response.json();
+      
+      if (!orders.length) {
+        ordersDiv.innerHTML = '<div class="no-orders">لا توجد طلبات سابقة</div>';
+        return;
+      }
+      
+      // ترتيب الطلبات من الأحدث إلى الأقدم
+      orders.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      // تجميع حسب الشهر (سنة-شهر)
+      const groups = {};
+      orders.forEach(order => {
+        const date = new Date(order.date);
+        const year = date.getFullYear();
+        const month = date.getMonth(); // 0-11
+        const monthKey = `${year}-${month}`;
+        const monthName = new Intl.DateTimeFormat('ar-EG', { year: 'numeric', month: 'long' }).format(date);
+        if (!groups[monthKey]) {
+          groups[monthKey] = { name: monthName, orders: [] };
+        }
+        groups[monthKey].orders.push(order);
+      });
+      
+      // إنشاء واجهة المجموعات
+      ordersDiv.innerHTML = '';
+      for (const [key, group] of Object.entries(groups)) {
+        const monthDiv = document.createElement('div');
+        monthDiv.className = 'month-group';
+        
+        const header = document.createElement('div');
+        header.className = 'month-header';
+        header.innerHTML = `
+          <div class="month-name">
+            📅 ${group.name}
+            <span style="background:#e2e8f0; padding:2px 8px; border-radius:20px; font-size:0.8rem;">${group.orders.length}</span>
+          </div>
+          <div class="toggle-icon">▼</div>
+        `;
+        header.onclick = () => {
+          const isOpen = header.classList.contains('open');
+          if (isOpen) {
+            header.classList.remove('open');
+            contentDiv.classList.remove('open');
+          } else {
+            header.classList.add('open');
+            contentDiv.classList.add('open');
+            // تحميل الصور داخل هذا الشهر فقط عند الفتح (لازي لود)
+            const imgElements = contentDiv.querySelectorAll('img[data-src]');
+            imgElements.forEach(img => {
+              img.src = img.dataset.src;
+              img.removeAttribute('data-src');
+            });
+          }
+        };
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'month-orders';
+        
+        // إضافة كل طلب في هذا الشهر
+        group.orders.forEach(order => {
+          const card = document.createElement('div');
+          card.className = 'order-card';
+          // الصورة تُحمَّل لاحقاً باستخدام data-src
+          const imgSrc = order.picture && order.picture !== '' ? order.picture : 'https://via.placeholder.com/60?text=No+Image';
+          card.innerHTML = `
+            <img class="order-img" data-src="${imgSrc}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='%23e2e8f0'%3E%3Crect width='60' height='60' fill='%23e2e8f0'/%3E%3C/svg%3E" onerror="this.src='https://via.placeholder.com/60?text=خطأ'">
+            <div class="order-info">
+              <strong>🆔 ${order.id}</strong> | <strong>📏 ${order.size}</strong><br>
+              <small>📅 ${new Date(order.date).toLocaleString('ar-EG')}</small>
+            </div>
+            <button class="return-btn" data-row="${order.row}" data-id="${order.id}" data-size="${order.size}" onclick="returnOrder(this)">↩️ إرجاع</button>
+          `;
+          contentDiv.appendChild(card);
+        });
+        
+        monthDiv.appendChild(header);
+        monthDiv.appendChild(contentDiv);
+        ordersDiv.appendChild(monthDiv);
+      }
+      
+    } catch (err) {
+      console.error(err);
+      ordersDiv.innerHTML = '<div class="error-msg">فشل تحميل السجل</div>';
+    }
+  }
+
+  // ========== إرجاع الطلب ==========
+  async function returnOrder(btn) {
+    const row = btn.getAttribute('data-row');
+    const id = btn.getAttribute('data-id');
+    const size = btn.getAttribute('data-size');
+    if (!confirm(`هل تريد إرجاع المنتج ${id} - مقاس ${size}؟`)) return;
+
+    btn.disabled = true;
+    btn.innerText = 'جاري...';
+    try {
+      const response = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'returnOrder', row: parseInt(row), id: id, size: size })
+      });
+      const result = await response.json();
+      if (result.success) {
+        showMessage(`✅ تم إرجاع المنتج ${id} - ${size} بنجاح`, true);
+        // تحديث السجل
+        loadSalesLog();
+        // إذا كانت هناك قياسات معروضة لنفس المنتج، يمكن تحديثها (اختياري)
+        if (document.getElementById('sizesBox').style.display === 'block') {
+          fetchAllSizes();
+        }
+      } else {
+        showMessage(result.message || 'فشل الإرجاع', false);
+        btn.disabled = false;
+        btn.innerText = '↩️ إرجاع';
+      }
+    } catch (err) {
+      showMessage('خطأ في الاتصال', false);
+      btn.disabled = false;
+      btn.innerText = '↩️ إرجاع';
+    }
   }
 
   // ========== مسح النموذج ==========
   function clearForm() {
-    // إبقاء حقل واحد فقط فارغ
     const container = document.getElementById('modelsContainer');
     container.innerHTML = `
       <div class="input-row">
@@ -558,7 +821,6 @@
     }
   });
 
-  // تركيز تلقائي عند التحميل
   window.onload = focusFirstInput;
 </script>
 </body>
