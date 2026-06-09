@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تجهيز الطلبات - نظام إدارة المبيعات</title>
+  <title>تجهيز الطلبات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link rel="icon" href="📦">
   <style>
@@ -473,9 +473,7 @@
 
   <!-- قسم اللصق التلقائي -->
   <div class="paste-section">
-    <textarea id="pasteCartInput" rows="4" placeholder="انسخ السلة هنا بالصيغة:
-* ID: SG-1119، القياس: 110، السعر الأصلي: 7,000 دينار، بعد الخصم 50%: 3,500 دينار
-* ID: M31-012، القياس: 110، السعر الأصلي: 11,000 دينار، بعد الخصم 50%: 5,500 دينار"></textarea>
+    <textarea id="pasteCartInput" rows="4" placeholder="الصق السلة هنا كاملة"></textarea>
     <div class="paste-actions">
       <button onclick="parseAndFillCart()">📋 تحليل وملء الحقول</button>
       <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
@@ -484,7 +482,7 @@
 
   <div id="modelsContainer">
     <div class="input-row">
-      <input type="text" class="productId" placeholder="أدخل ID المنتج (اضغط Enter لإضافة حقل جديد)" autocomplete="off">
+      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
       <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     </div>
