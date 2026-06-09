@@ -23,7 +23,7 @@
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(2px);
       width: 100%;
-      max-width: 750px;
+      max-width: 850px;
       border-radius: 28px;
       padding: 20px 18px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.05);
@@ -47,6 +47,43 @@
       padding: 2px 12px;
       border-radius: 40px;
       font-weight: 400;
+    }
+    .paste-section {
+      background: #fefce8;
+      border: 2px dashed #eab308;
+      border-radius: 24px;
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+    .paste-section textarea {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      font-family: 'Cairo', monospace;
+      font-size: 14px;
+      resize: vertical;
+      background: #fffdf7;
+    }
+    .paste-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      justify-content: flex-start;
+    }
+    .paste-actions button {
+      background: #eab308;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 600;
+      color: #1e293b;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .paste-actions button:hover {
+      background: #ca8a04;
+      color: white;
     }
     .input-row {
       display: flex;
@@ -74,6 +111,15 @@
     }
     .productId::placeholder {
       color: #94a3b8;
+    }
+    .size-hint {
+      font-size: 12px;
+      color: #64748b;
+      background: #eef2ff;
+      padding: 4px 8px;
+      border-radius: 30px;
+      margin-left: 4px;
+      white-space: nowrap;
     }
     .icon-btn {
       background: #ffffff;
@@ -423,11 +469,22 @@
 </head>
 <body>
 <div class="container">
-  <h2>📦 تجهيز الطلبات <span>v4</span></h2>
+  <h2>📦 تجهيز الطلبات <span>v5</span></h2>
+
+  <!-- قسم اللصق التلقائي -->
+  <div class="paste-section">
+    <textarea id="pasteCartInput" rows="4" placeholder="انسخ السلة هنا بالصيغة:
+* ID: SG-1119، القياس: 110، السعر الأصلي: 7,000 دينار، بعد الخصم 50%: 3,500 دينار
+* ID: M31-012، القياس: 110، السعر الأصلي: 11,000 دينار، بعد الخصم 50%: 5,500 دينار"></textarea>
+    <div class="paste-actions">
+      <button onclick="parseAndFillCart()">📋 تحليل وملء الحقول</button>
+      <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
+    </div>
+  </div>
 
   <div id="modelsContainer">
     <div class="input-row">
-      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+      <input type="text" class="productId" placeholder="أدخل ID المنتج (اضغط Enter لإضافة حقل جديد)" autocomplete="off">
       <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     </div>
@@ -459,9 +516,11 @@
 </div>
 
 <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec'; // استخدم رابط النشر الخاص بك
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbwK-ocQW5eO9n0_8qKy2o34dVjFT2Qyb2vE5HWVIoAU6KrwqwbcDiVT8dhmXOtGs3eEBw/exec';
   let html5QrCode = null;
   let activeScanButton = null;
+  // تخزين القياس المستخرج لكل صف (ID -> size مستخرج)
+  let extractedSizesMap = new Map(); // key = index of row (or unique id) لكننا سنعتمد على data attribute على input row
 
   function showLoading(btn, text = 'جاري...') {
     if (btn) {
@@ -489,26 +548,99 @@
   }
   function clearMessage() { document.getElementById('result').innerHTML = ''; }
 
-  function addModel() {
+  // إضافة صف جديد مع إمكانية تحديد قيمة معرف وقياس مستخرج
+  function addModelWithValues(productId = '', extractedSize = '') {
     const container = document.getElementById('modelsContainer');
     const div = document.createElement('div');
     div.className = 'input-row';
     div.innerHTML = `
-      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+      <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off" value="${escapeHtml(productId)}">
+      <span class="size-hint" style="display: ${extractedSize ? 'inline-block' : 'none'}">📏 مستخرج: ${escapeHtml(extractedSize)}</span>
       <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     `;
     container.appendChild(div);
-    div.querySelector('.productId').focus();
+    const input = div.querySelector('.productId');
+    if (extractedSize) {
+      // خزن القياس المستخرج في data attribute للصف
+      div.dataset.extractedSize = extractedSize;
+    }
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }
+
+  // دالة مساعدة لتفادي injection
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+      return c;
+    });
+  }
+
+  function addModel() {
+    addModelWithValues('', '');
+  }
+
   function removeRow(btn) {
     const row = btn.closest('.input-row');
     if (document.querySelectorAll('.input-row').length > 1) {
       row.remove();
     } else {
       row.querySelector('.productId').value = '';
+      if (row.dataset.extractedSize) delete row.dataset.extractedSize;
+      const hint = row.querySelector('.size-hint');
+      if (hint) hint.style.display = 'none';
       row.querySelector('.productId').focus();
     }
+  }
+
+  // تحليل النص واستخراج المعرفات والقياسات
+  function parseAndFillCart() {
+    const rawText = document.getElementById('pasteCartInput').value;
+    if (!rawText.trim()) {
+      showMessage('❌ الرجاء لصق السلة أولاً', false);
+      return;
+    }
+    // نمط: ID: xxx، القياس: yyy (قد يكون بعدها فاصلة أو سطر جديد)
+    // نبحث عن "ID:" متبوعاً بأي حروف حتى "،" أو "القياس:" ثم نأخذ الرقم بعد "القياس:"
+    const lines = rawText.split(/\r?\n/);
+    const items = [];
+    for (let line of lines) {
+      // محاولة استخراج ID والقياس
+      const idMatch = line.match(/ID:\s*([^،،\n\r]+)/i);
+      const sizeMatch = line.match(/القياس:\s*(\d+)/i);
+      if (idMatch && sizeMatch) {
+        let id = idMatch[1].trim();
+        // إزالة أي علامات ترقيم زائدة قد تبقى
+        id = id.replace(/[،,]/g, '').trim();
+        const size = sizeMatch[1].trim();
+        items.push({ id, size });
+      }
+    }
+    if (items.length === 0) {
+      showMessage('❌ لم يتم العثور على أي منتج بالصيغة المطلوبة (ID: ...، القياس: ...)', false);
+      return;
+    }
+    // مسح الحقول الحالية
+    const container = document.getElementById('modelsContainer');
+    container.innerHTML = '';
+    // إعادة إنشاء الصفوف بناءً على العناصر المستخرجة
+    items.forEach(item => {
+      addModelWithValues(item.id, item.size);
+    });
+    // إذا لم يضف أي شيء (ربما items فارغة لكن لن يحدث)
+    if (items.length === 0) addModelWithValues('', '');
+    showMessage(`✅ تم ملء ${items.length} حقل(ول) تلقائياً. يمكنك التدقيق ثم الضغط على "عرض القياسات"`, true);
+    focusFirstInput();
+  }
+
+  function clearPasteArea() {
+    document.getElementById('pasteCartInput').value = '';
   }
 
   function startScan(btn) {
@@ -551,61 +683,72 @@
     showLoading(fetchBtn, 'جلب القياسات...');
     clearMessage();
     document.getElementById('sizesBox').style.display = 'none';
-    const ids = Array.from(document.querySelectorAll('.productId')).map(inp => inp.value.trim()).filter(v => v !== '');
+    const rows = Array.from(document.querySelectorAll('.input-row'));
+    const ids = rows.map(row => row.querySelector('.productId').value.trim()).filter(v => v !== '');
     if (ids.length === 0) {
       showMessage('❌ أدخل معرف واحد على الأقل.', false);
       hideLoading(fetchBtn);
       return;
     }
+    // جلب البيانات لكل معرف
     try {
       const requests = ids.map(id => 
         fetch(`${scriptURL}?action=getSizes&id=${encodeURIComponent(id)}`)
           .then(res => res.json())
-          .then(data => ({ id, success: data.success, sizes: data.sizes || [], error: null }))
+          .then(data => ({ id, success: data.success, sizes: data.sizes || [] }))
           .catch(() => ({ id, success: false, sizes: [] }))
       );
       const results = await Promise.all(requests);
-      const successful = results.filter(r => r.success && r.sizes.length > 0);
-      const failed = results.filter(r => !r.success || r.sizes.length === 0);
       const container = document.getElementById('sizesCheckboxes');
       container.innerHTML = '';
-      if (successful.length === 0) {
-        container.innerHTML = '<div class="error-msg">لا توجد قياسات متاحة لأي من المعرفات.</div>';
-        document.getElementById('sizesBox').style.display = 'block';
-        hideLoading(fetchBtn);
-        return;
-      }
-      successful.forEach(model => {
+      let hasAny = false;
+      // نمر على كل صف وننشئ مجموعة لكل منتج (يمكن أن يتكرر المعرف عدة مرات، نعرض كل مجموعة بشكل مستقل)
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const idInput = row.querySelector('.productId');
+        const id = idInput.value.trim();
+        if (!id) continue;
+        const result = results.find(r => r.id === id);
+        if (!result || !result.success || result.sizes.length === 0) {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'error-msg';
+          errorDiv.innerText = `⚠️ لم يتم العثور على قياسات للمعرف: ${id}`;
+          container.appendChild(errorDiv);
+          continue;
+        }
+        hasAny = true;
+        const extractedSize = row.dataset.extractedSize || '';
         const groupDiv = document.createElement('div');
         groupDiv.className = 'model-group';
-        groupDiv.dataset.modelId = model.id;
+        groupDiv.dataset.modelId = id;
+        groupDiv.dataset.rowIndex = i;
         const titleDiv = document.createElement('div');
         titleDiv.className = 'model-title';
         titleDiv.innerHTML = `
-          <span>🆔 ${model.id}</span>
-          <span class="badge">${model.sizes.length} قياس</span>
+          <span>🆔 ${escapeHtml(id)}</span>
+          <span class="badge">${result.sizes.length} قياس</span>
           <button class="select-all-btn" onclick="toggleSelectAll(this)">✔️ تحديد الكل</button>
         `;
         groupDiv.appendChild(titleDiv);
-        model.sizes.forEach(size => {
+        result.sizes.forEach(size => {
           const label = document.createElement('label');
           label.className = 'size-checkbox';
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.value = size;
-          cb.dataset.modelId = model.id;
+          cb.dataset.modelId = id;
+          // إذا كان القياس المستخرج موجوداً ويساوي هذا الحجم، نحدده تلقائياً
+          if (extractedSize && extractedSize === size) {
+            cb.checked = true;
+          }
           label.appendChild(cb);
           label.appendChild(document.createTextNode(' ' + size));
           groupDiv.appendChild(label);
         });
         container.appendChild(groupDiv);
-      });
-      if (failed.length > 0) {
-        const errDiv = document.createElement('div');
-        errDiv.className = 'error-msg';
-        errDiv.style.marginTop = '10px';
-        errDiv.innerText = `⚠️ لم يتم العثور على قياسات للمعرفات: ${failed.map(f => f.id).join('، ')}`;
-        container.appendChild(errDiv);
+      }
+      if (!hasAny) {
+        container.innerHTML = '<div class="error-msg">لا توجد قياسات متاحة لأي من المعرفات.</div>';
       }
       document.getElementById('sizesBox').style.display = 'block';
       hideLoading(fetchBtn);
@@ -614,6 +757,7 @@
       hideLoading(fetchBtn);
     }
   }
+
   function toggleSelectAll(btn) {
     const group = btn.closest('.model-group');
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
@@ -637,7 +781,6 @@
       hideLoading(prepareBtn);
       return;
     }
-    // توليد رقم قائمة فريد (batchId)
     const batchId = Date.now() + '-' + Math.random().toString(36).substring(2, 10);
     const requests = selected.map(item =>
       fetch(scriptURL, {
@@ -655,10 +798,17 @@
     if (failed.length === 0) {
       showMessage(`✅ تم تجهيز ${succeeded.length} طلب بنجاح. رقم القائمة: ${batchId}`, true);
       document.getElementById('sizesBox').style.display = 'none';
+      // تنظيف الحقول وإعادة تعيين البيانات
       const rows = document.querySelectorAll('.input-row');
       rows.forEach((row, index) => {
-        if (index === 0) row.querySelector('.productId').value = '';
-        else row.remove();
+        if (index === 0) {
+          row.querySelector('.productId').value = '';
+          delete row.dataset.extractedSize;
+          const hint = row.querySelector('.size-hint');
+          if (hint) hint.style.display = 'none';
+        } else {
+          row.remove();
+        }
       });
       focusFirstInput();
       if (document.getElementById('historyBox').style.display === 'block') {
@@ -692,7 +842,6 @@
         return;
       }
       orders.sort((a, b) => new Date(b.date) - new Date(a.date));
-      // تجميع حسب batchId إن وجد، وإلا حسب التقارب الزمني
       const batches = [];
       const used = new Array(orders.length).fill(false);
       for (let i = 0; i < orders.length; i++) {
@@ -835,7 +984,7 @@
     const container = document.getElementById('modelsContainer');
     container.innerHTML = `
       <div class="input-row">
-        <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+        <input type="text" class="productId" placeholder="أدخل ID المنتج (اضغط Enter لإضافة حقل جديد)" autocomplete="off">
         <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
         <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
       </div>
@@ -845,11 +994,16 @@
     focusFirstInput();
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && document.getElementById('sizesBox').style.display === 'block') {
-      prepareOrder();
+  function handleEnterToAddField(event) {
+    if (event.key === 'Enter') {
+      const target = event.target;
+      if (target && target.classList && target.classList.contains('productId')) {
+        event.preventDefault();
+        addModel();
+      }
     }
-  });
+  }
+  document.addEventListener('keydown', handleEnterToAddField);
   window.onload = focusFirstInput;
 </script>
 </body>
