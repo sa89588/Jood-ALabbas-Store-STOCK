@@ -463,9 +463,249 @@
       padding: 30px;
       color: #2563eb;
     }
-  </style>
+  
+    /* ===== قسم طلبات الموقع ===== */
+    .website-orders-section {
+      background: #f0f7ff;
+      border-radius: 24px;
+      padding: 16px;
+      margin-top: 20px;
+      border: 2px solid #1565C0;
+      display: none;
+    }
+    .wo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .wo-title { font-weight: 700; font-size: 1.3rem; color: #1565C0; }
+    .wo-count {
+      background: #1565C0; color: #fff;
+      border-radius: 20px; padding: 2px 12px;
+      font-size: 0.85rem; font-weight: 700;
+    }
+    .close-wo {
+      background: none; border: none;
+      font-size: 20px; cursor: pointer; color: #666;
+    }
+    .wo-filters {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .wo-filter-btn {
+      padding: 6px 14px; border-radius: 20px;
+      border: 1.5px solid #ccc; background: #fff;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: all .2s;
+    }
+    .wo-filter-btn.active { background: #1565C0; color: #fff; border-color: #1565C0; }
+    .order-card {
+      background: #fff; border-radius: 16px;
+      padding: 14px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      border-right: 5px solid #ccc;
+      transition: border-color .3s;
+    }
+    .order-card[data-status="جديد"]         { border-color: #f59e0b; }
+    .order-card[data-status="قيد التجهيز"]  { border-color: #3b82f6; }
+    .order-card[data-status="تم التجهيز"]   { border-color: #22c55e; }
+    .order-card[data-status="ملغي"]         { border-color: #ef4444; opacity:.7; }
+    .oc-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;
+    }
+    .oc-id   { font-size: 12px; color: #888; }
+    .oc-time { font-size: 12px; color: #888; }
+    .oc-status {
+      padding: 3px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+    }
+    .st-جديد         { background:#FEF3C7; color:#92400E; }
+    .st-قيد-التجهيز  { background:#DBEAFE; color:#1E40AF; }
+    .st-تم-التجهيز   { background:#D1FAE5; color:#065F46; }
+    .st-ملغي         { background:#FEE2E2; color:#991B1B; }
+    .oc-customer {
+      font-size: 15px; font-weight: 700; margin-bottom: 4px;
+    }
+    .oc-info { font-size: 13px; color: #555; margin-bottom: 4px; }
+    .oc-products {
+      background: #f8fafc; border-radius: 10px;
+      padding: 8px 10px; margin: 8px 0;
+      font-size: 13px; white-space: pre-line; line-height: 1.6;
+    }
+    .oc-total { font-size: 14px; font-weight: 700; color: #1565C0; margin-bottom: 10px; }
+    .oc-channel { font-size: 12px; color: #888; margin-bottom: 10px; }
+    .oc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .oc-actions button {
+      padding: 6px 14px; border-radius: 10px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: opacity .2s;
+    }
+    .oc-actions button:hover { opacity: .82; }
+    .btn-pending   { background: #FEF3C7; color: #92400E; }
+    .btn-inprog    { background: #DBEAFE; color: #1E40AF; }
+    .btn-done      { background: #D1FAE5; color: #065F46; }
+    .btn-cancel    { background: #FEE2E2; color: #991B1B; }
+    .btn-wa        { background: #25D366; color: #fff; }
+    .wo-empty { text-align:center; padding: 30px; color: #888; font-size: 15px; }
+    .wo-refreshing { text-align:center; padding: 16px; color: #1565C0; }
+
+    </style>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode">
+  // ==================== طلبات الموقع ====================
+
+  let _allWebsiteOrders  = [];
+  let _currentFilter     = 'all';
+  let _woAutoRefreshTimer = null;
+
+  function toggleWebsiteOrders() {
+    const box = document.getElementById('websiteOrdersBox');
+    if (box.style.display === 'block') {
+      box.style.display = 'none';
+      clearInterval(_woAutoRefreshTimer);
+    } else {
+      box.style.display = 'block';
+      loadWebsiteOrders();
+      // تحديث تلقائي كل 30 ثانية عند الفتح
+      _woAutoRefreshTimer = setInterval(loadWebsiteOrders, 30000);
+    }
+  }
+
+  async function loadWebsiteOrders() {
+    const listDiv = document.getElementById('websiteOrdersList');
+    listDiv.innerHTML = '<div class="wo-refreshing">🔄 جاري التحميل...</div>';
+    try {
+      const res    = await fetch(`${scriptURL}?action=getOrders`);
+      const orders = await res.json();
+      if (orders.error) throw new Error(orders.error);
+      _allWebsiteOrders = orders;
+      updateWoCount();
+      renderOrders(_currentFilter);
+    } catch (err) {
+      listDiv.innerHTML = '<div class="wo-empty">❌ خطأ في التحميل: ' + err.message + '</div>';
+    }
+  }
+
+  function updateWoCount() {
+    const newCount = _allWebsiteOrders.filter(o => o['الحالة'] === 'جديد').length;
+    const badge    = document.getElementById('woNewCount');
+    const total    = document.getElementById('woTotalCount');
+    total.textContent = _allWebsiteOrders.length + ' طلب';
+    if (newCount > 0) {
+      badge.textContent  = newCount;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function filterOrders(btn, filter) {
+    _currentFilter = filter;
+    document.querySelectorAll('.wo-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders(filter);
+  }
+
+  function renderOrders(filter) {
+    const listDiv = document.getElementById('websiteOrdersList');
+    let filtered = _allWebsiteOrders;
+    if (filter !== 'all') {
+      filtered = _allWebsiteOrders.filter(o => o['الحالة'] === filter);
+    }
+    if (!filtered.length) {
+      listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
+      return;
+    }
+    listDiv.innerHTML = '';
+    filtered.forEach(function(order) {
+      const orderId  = order['Order ID']    || '';
+      const date     = order['التاريخ']     || '';
+      const time     = order['الوقت']       || '';
+      const name     = order['الاسم']       || '';
+      const phone    = order['الهاتف']      || '';
+      const address  = order['العنوان']     || '';
+      const products = order['المنتجات']    || '';
+      const total    = order['المجموع (دينار)'] || 0;
+      const channel  = order['قناة الإرسال'] || '';
+      const status   = order['الحالة']      || 'جديد';
+
+      // رابط واتساب
+      const waTel = phone.replace(/\D/g,'');
+      const waMsg = encodeURIComponent('متابعة طلب ' + orderId);
+
+      // نص الرسالة المختصر
+      const statusClass = 'st-' + status.replace(/\s/g, '-');
+      const channelIcon = channel === 'whatsapp' ? '📲 واتساب' : channel === 'telegram' ? '✈️ تليجرام' : channel;
+
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      card.dataset.status = status;
+      card.dataset.orderId = orderId;
+      card.innerHTML = `
+        <div class="oc-header">
+          <span class="oc-id">🆔 ${escapeHtml(orderId)}</span>
+          <span class="oc-time">📅 ${escapeHtml(date)} ${escapeHtml(time)}</span>
+          <span class="oc-status ${statusClass}">${escapeHtml(status)}</span>
+        </div>
+        <div class="oc-customer">👤 ${escapeHtml(name)}</div>
+        <div class="oc-info">📞 ${escapeHtml(phone)}</div>
+        <div class="oc-info">📍 ${escapeHtml(address)}</div>
+        <div class="oc-products">${escapeHtml(products)}</div>
+        <div class="oc-total">💰 المجموع: ${Number(total).toLocaleString()} دينار</div>
+        <div class="oc-channel">📡 ${escapeHtml(channelIcon)}</div>
+        <div class="oc-actions">
+          <button class="btn-inprog"  onclick="changeStatus('${escapeHtml(orderId)}', 'قيد التجهيز', this)">⚙️ قيد التجهيز</button>
+          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم التجهيز</button>
+          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 إعادة لجديد</button>
+          <button class="btn-cancel"  onclick="changeStatus('${escapeHtml(orderId)}', 'ملغي', this)">❌ ملغي</button>
+          ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank"><button class="btn-wa">📲 تواصل</button></a>` : ''}
+        </div>`;
+      listDiv.appendChild(card);
+    });
+  }
+
+  async function changeStatus(orderId, newStatus, btn) {
+    const card = btn.closest('.order-card');
+    btn.disabled = true;
+    btn.textContent = '⏳...';
+    try {
+      const res    = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'updateOrderStatus', orderId: orderId, status: newStatus })
+      });
+      const result = await res.json();
+      if (result.success) {
+        // تحديث محلي فوري بدون إعادة تحميل
+        card.dataset.status = newStatus;
+        card.querySelector('.oc-status').textContent  = newStatus;
+        card.querySelector('.oc-status').className    =
+          'oc-status st-' + newStatus.replace(/\s/g, '-');
+        // تحديث المصفوفة المحلية
+        const idx = _allWebsiteOrders.findIndex(o => o['Order ID'] === orderId);
+        if (idx !== -1) _allWebsiteOrders[idx]['الحالة'] = newStatus;
+        updateWoCount();
+        // إذا كان الفلتر نشطاً نعيد الرسم
+        if (_currentFilter !== 'all' && _currentFilter !== newStatus) {
+          card.style.opacity = '0.4';
+          setTimeout(() => renderOrders(_currentFilter), 800);
+        }
+      } else {
+        alert('❌ خطأ: ' + (result.error || 'فشل التحديث'));
+        btn.disabled = false;
+        btn.textContent = newStatus;
+      }
+    } catch (err) {
+      alert('❌ خطأ في الاتصال: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+
+</script>
 </head>
 <body>
 <div class="container">
@@ -493,6 +733,7 @@
     <button class="primary-btn" onclick="fetchAllSizes()" id="fetchBtn">🔍 عرض القياسات</button>
     <button class="secondary-btn" onclick="clearForm()">🧹 مسح</button>
     <button class="history-btn" onclick="toggleHistory()">📜 سجل التجهيزات</button>
+    <button class="history-btn" onclick="toggleWebsiteOrders()" style="background:#1565C0;color:#fff;">🌐 طلبات الموقع <span id="woNewCount" style="display:none;background:#ef4444;border-radius:50%;padding:1px 7px;font-size:12px;margin-right:4px;">0</span></button>
   </div>
 
   <div id="reader"></div>
@@ -500,6 +741,25 @@
   <div id="sizesBox" style="display:none;" class="sizes-section">
     <div id="sizesCheckboxes"></div>
     <button class="primary-btn" id="prepareBtn" onclick="prepareOrder()" style="width:100%; margin-top:16px;">تجهيز الطلب</button>
+  </div>
+
+
+  <!-- ===== قسم طلبات الموقع ===== -->
+  <div id="websiteOrdersBox" class="website-orders-section">
+    <div class="wo-header">
+      <span class="wo-title">🌐 طلبات الموقع</span>
+      <span class="wo-count" id="woTotalCount">0</span>
+      <button class="close-wo" onclick="toggleWebsiteOrders()">✖</button>
+    </div>
+    <div class="wo-filters">
+      <button class="wo-filter-btn active" data-filter="all" onclick="filterOrders(this,'all')">الكل</button>
+      <button class="wo-filter-btn" data-filter="جديد" onclick="filterOrders(this,'جديد')">🆕 جديد</button>
+      <button class="wo-filter-btn" data-filter="قيد التجهيز" onclick="filterOrders(this,'قيد التجهيز')">⚙️ قيد التجهيز</button>
+      <button class="wo-filter-btn" data-filter="تم التجهيز" onclick="filterOrders(this,'تم التجهيز')">✅ تم التجهيز</button>
+      <button class="wo-filter-btn" data-filter="ملغي" onclick="filterOrders(this,'ملغي')">❌ ملغي</button>
+      <button onclick="loadWebsiteOrders()" style="padding:6px 14px;border-radius:20px;border:1.5px solid #1565C0;background:#fff;color:#1565C0;cursor:pointer;font-size:13px;font-weight:600;">🔄 تحديث</button>
+    </div>
+    <div id="websiteOrdersList"></div>
   </div>
 
   <div id="historyBox" class="history-section">
@@ -1003,6 +1263,156 @@
   }
   document.addEventListener('keydown', handleEnterToAddField);
   window.onload = focusFirstInput;
+
+  // ==================== طلبات الموقع ====================
+
+  let _allWebsiteOrders  = [];
+  let _currentFilter     = 'all';
+  let _woAutoRefreshTimer = null;
+
+  function toggleWebsiteOrders() {
+    const box = document.getElementById('websiteOrdersBox');
+    if (box.style.display === 'block') {
+      box.style.display = 'none';
+      clearInterval(_woAutoRefreshTimer);
+    } else {
+      box.style.display = 'block';
+      loadWebsiteOrders();
+      // تحديث تلقائي كل 30 ثانية عند الفتح
+      _woAutoRefreshTimer = setInterval(loadWebsiteOrders, 30000);
+    }
+  }
+
+  async function loadWebsiteOrders() {
+    const listDiv = document.getElementById('websiteOrdersList');
+    listDiv.innerHTML = '<div class="wo-refreshing">🔄 جاري التحميل...</div>';
+    try {
+      const res    = await fetch(`${scriptURL}?action=getOrders`);
+      const orders = await res.json();
+      if (orders.error) throw new Error(orders.error);
+      _allWebsiteOrders = orders;
+      updateWoCount();
+      renderOrders(_currentFilter);
+    } catch (err) {
+      listDiv.innerHTML = '<div class="wo-empty">❌ خطأ في التحميل: ' + err.message + '</div>';
+    }
+  }
+
+  function updateWoCount() {
+    const newCount = _allWebsiteOrders.filter(o => o['الحالة'] === 'جديد').length;
+    const badge    = document.getElementById('woNewCount');
+    const total    = document.getElementById('woTotalCount');
+    total.textContent = _allWebsiteOrders.length + ' طلب';
+    if (newCount > 0) {
+      badge.textContent  = newCount;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function filterOrders(btn, filter) {
+    _currentFilter = filter;
+    document.querySelectorAll('.wo-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders(filter);
+  }
+
+  function renderOrders(filter) {
+    const listDiv = document.getElementById('websiteOrdersList');
+    let filtered = _allWebsiteOrders;
+    if (filter !== 'all') {
+      filtered = _allWebsiteOrders.filter(o => o['الحالة'] === filter);
+    }
+    if (!filtered.length) {
+      listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
+      return;
+    }
+    listDiv.innerHTML = '';
+    filtered.forEach(function(order) {
+      const orderId  = order['Order ID']    || '';
+      const date     = order['التاريخ']     || '';
+      const time     = order['الوقت']       || '';
+      const name     = order['الاسم']       || '';
+      const phone    = order['الهاتف']      || '';
+      const address  = order['العنوان']     || '';
+      const products = order['المنتجات']    || '';
+      const total    = order['المجموع (دينار)'] || 0;
+      const channel  = order['قناة الإرسال'] || '';
+      const status   = order['الحالة']      || 'جديد';
+
+      // رابط واتساب
+      const waTel = phone.replace(/\D/g,'');
+      const waMsg = encodeURIComponent('متابعة طلب ' + orderId);
+
+      // نص الرسالة المختصر
+      const statusClass = 'st-' + status.replace(/\s/g, '-');
+      const channelIcon = channel === 'whatsapp' ? '📲 واتساب' : channel === 'telegram' ? '✈️ تليجرام' : channel;
+
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      card.dataset.status = status;
+      card.dataset.orderId = orderId;
+      card.innerHTML = `
+        <div class="oc-header">
+          <span class="oc-id">🆔 ${escapeHtml(orderId)}</span>
+          <span class="oc-time">📅 ${escapeHtml(date)} ${escapeHtml(time)}</span>
+          <span class="oc-status ${statusClass}">${escapeHtml(status)}</span>
+        </div>
+        <div class="oc-customer">👤 ${escapeHtml(name)}</div>
+        <div class="oc-info">📞 ${escapeHtml(phone)}</div>
+        <div class="oc-info">📍 ${escapeHtml(address)}</div>
+        <div class="oc-products">${escapeHtml(products)}</div>
+        <div class="oc-total">💰 المجموع: ${Number(total).toLocaleString()} دينار</div>
+        <div class="oc-channel">📡 ${escapeHtml(channelIcon)}</div>
+        <div class="oc-actions">
+          <button class="btn-inprog"  onclick="changeStatus('${escapeHtml(orderId)}', 'قيد التجهيز', this)">⚙️ قيد التجهيز</button>
+          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم التجهيز</button>
+          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 إعادة لجديد</button>
+          <button class="btn-cancel"  onclick="changeStatus('${escapeHtml(orderId)}', 'ملغي', this)">❌ ملغي</button>
+          ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank"><button class="btn-wa">📲 تواصل</button></a>` : ''}
+        </div>`;
+      listDiv.appendChild(card);
+    });
+  }
+
+  async function changeStatus(orderId, newStatus, btn) {
+    const card = btn.closest('.order-card');
+    btn.disabled = true;
+    btn.textContent = '⏳...';
+    try {
+      const res    = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'updateOrderStatus', orderId: orderId, status: newStatus })
+      });
+      const result = await res.json();
+      if (result.success) {
+        // تحديث محلي فوري بدون إعادة تحميل
+        card.dataset.status = newStatus;
+        card.querySelector('.oc-status').textContent  = newStatus;
+        card.querySelector('.oc-status').className    =
+          'oc-status st-' + newStatus.replace(/\s/g, '-');
+        // تحديث المصفوفة المحلية
+        const idx = _allWebsiteOrders.findIndex(o => o['Order ID'] === orderId);
+        if (idx !== -1) _allWebsiteOrders[idx]['الحالة'] = newStatus;
+        updateWoCount();
+        // إذا كان الفلتر نشطاً نعيد الرسم
+        if (_currentFilter !== 'all' && _currentFilter !== newStatus) {
+          card.style.opacity = '0.4';
+          setTimeout(() => renderOrders(_currentFilter), 800);
+        }
+      } else {
+        alert('❌ خطأ: ' + (result.error || 'فشل التحديث'));
+        btn.disabled = false;
+        btn.textContent = newStatus;
+      }
+    } catch (err) {
+      alert('❌ خطأ في الاتصال: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+
 </script>
 </body>
 </html>
