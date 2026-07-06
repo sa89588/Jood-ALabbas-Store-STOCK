@@ -550,17 +550,57 @@
     .btn-done      { background: #D1FAE5; color: #065F46; }
     .btn-cancel    { background: #FEE2E2; color: #991B1B; }
     .btn-wa        { background: #25D366; color: #fff; }
+    .btn-copy      { background: #E0E7FF; color: #3730A3; }
+    .btn-copy.copied { background: #D1FAE5; color: #065F46; }
     .wo-empty { text-align:center; padding: 30px; color: #888; font-size: 15px; }
     .wo-refreshing { text-align:center; padding: 16px; color: #1565C0; }
 
+    
+    /* ===== تحسين رقم الهاتف ===== */
+    .oc-phone { color:#1565C0; font-weight:700; text-decoration:none; direction:ltr; display:inline-block; }
+    .oc-phone:hover { text-decoration:underline; }
+
+    /* ===== تحسين التجاوب مع الشاشات الصغيرة ===== */
+    @media (max-width: 600px) {
+      .website-orders-section { padding: 10px; border-radius: 16px; }
+      .wo-header { gap: 6px; }
+      .wo-title { font-size: 1.1rem; }
+      .wo-filters { gap: 6px; }
+      .wo-filter-btn {
+        padding: 5px 10px; font-size: 12px;
+        flex: 1 1 auto; min-width: calc(50% - 6px); text-align: center;
+      }
+      .order-card { padding: 11px; border-radius: 12px; }
+      .oc-header { gap: 4px; }
+      .oc-id, .oc-time { font-size: 11px; }
+      .oc-status { font-size: 11px; padding: 2px 9px; }
+      .oc-products {
+        font-size: 12px; padding: 8px;
+        max-height: 200px; overflow-y: auto;
+      }
+      .oc-actions { gap: 5px; }
+      .oc-actions button {
+        padding: 7px 9px; font-size: 12px;
+        flex: 1 1 auto; min-width: calc(50% - 5px);
+      }
+      .oc-actions a { flex: 1 1 100%; }
+      .oc-actions a button { width: 100%; }
+    }
+    @media (max-width: 380px) {
+      .wo-filter-btn { min-width: 100%; }
+      .oc-actions button { min-width: 100%; }
+    }
+
     </style>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
   // ==================== طلبات الموقع ====================
 
   let _allWebsiteOrders  = [];
   let _currentFilter     = 'all';
   let _woAutoRefreshTimer = null;
+  let _orderMessages     = {};  // تخزين نص كل طلب بمفتاح orderId
 
   function toggleWebsiteOrders() {
     const box = document.getElementById('websiteOrdersBox');
@@ -582,7 +622,7 @@
       const res    = await fetch(`${scriptURL}?action=getOrders`);
       const orders = await res.json();
       if (orders.error) throw new Error(orders.error);
-      _allWebsiteOrders = orders;
+      _allWebsiteOrders = Array.isArray(orders) ? orders : [];
       updateWoCount();
       renderOrders(_currentFilter);
     } catch (err) {
@@ -591,7 +631,7 @@
   }
 
   function updateWoCount() {
-    const newCount = _allWebsiteOrders.filter(o => o['الحالة'] === 'جديد').length;
+    const newCount = _allWebsiteOrders.filter(o => String(o['الحالة']||'') === 'جديد').length;
     const badge    = document.getElementById('woNewCount');
     const total    = document.getElementById('woTotalCount');
     total.textContent = _allWebsiteOrders.length + ' طلب';
@@ -614,7 +654,7 @@
     const listDiv = document.getElementById('websiteOrdersList');
     let filtered = _allWebsiteOrders;
     if (filter !== 'all') {
-      filtered = _allWebsiteOrders.filter(o => o['الحالة'] === filter);
+      filtered = _allWebsiteOrders.filter(o => String(o['الحالة']||'') === filter);
     }
     if (!filtered.length) {
       listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
@@ -622,16 +662,21 @@
     }
     listDiv.innerHTML = '';
     filtered.forEach(function(order) {
-      const orderId  = order['Order ID']    || '';
-      const date     = order['التاريخ']     || '';
-      const time     = order['الوقت']       || '';
-      const name     = order['الاسم']       || '';
-      const phone    = order['الهاتف']      || '';
-      const address  = order['العنوان']     || '';
-      const products = order['المنتجات']    || '';
-      const total    = order['المجموع (دينار)'] || 0;
-      const channel  = order['قناة الإرسال'] || '';
-      const status   = order['الحالة']      || 'جديد';
+      // بنية السكربت: Order ID, التاريخ, الوقت, الهاتف, القناة, الحالة, نص الطلب
+      // نقرأ بمرونة — نجرب أسماء مفاتيح محتملة لكل حقل
+      const getVal = (obj, keys) => {
+        for (const k of keys) {
+          if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
+        }
+        return '';
+      };
+      const orderId  = String(getVal(order, ['Order ID', 'OrderID', 'orderId']) || '');
+      const date     = String(getVal(order, ['التاريخ', 'Date', 'date']) || '');
+      const time     = String(getVal(order, ['الوقت', 'Time', 'time']) || '');
+      const phone    = String(getVal(order, ['الهاتف', 'Phone', 'phone']) || '');
+      const channel  = String(getVal(order, ['القناة', 'قناة الإرسال', 'Channel', 'channel']) || '');
+      const status   = String(getVal(order, ['الحالة', 'Status', 'status']) || 'جديد');
+      const fullMsg  = String(getVal(order, ['نص الطلب', 'نص الرسالة', 'Message', 'message', 'الرسالة']) || '');
 
       // رابط واتساب
       const waTel = phone.replace(/\D/g,'');
@@ -651,21 +696,52 @@
           <span class="oc-time">📅 ${escapeHtml(date)} ${escapeHtml(time)}</span>
           <span class="oc-status ${statusClass}">${escapeHtml(status)}</span>
         </div>
-        <div class="oc-customer">👤 ${escapeHtml(name)}</div>
-        <div class="oc-info">📞 ${escapeHtml(phone)}</div>
-        <div class="oc-info">📍 ${escapeHtml(address)}</div>
-        <div class="oc-products">${escapeHtml(products)}</div>
-        <div class="oc-total">💰 المجموع: ${Number(total).toLocaleString()} دينار</div>
+        <div class="oc-info">📞 <a href="tel:${escapeHtml(phone)}" class="oc-phone">${escapeHtml(phone)}</a></div>
         <div class="oc-channel">📡 ${escapeHtml(channelIcon)}</div>
+        <div class="oc-products">${escapeHtml(fullMsg)}</div>
         <div class="oc-actions">
+          <button class="btn-copy"    onclick="copyOrderText(this)">📋 نسخ النص</button>
           <button class="btn-inprog"  onclick="changeStatus('${escapeHtml(orderId)}', 'قيد التجهيز', this)">⚙️ قيد التجهيز</button>
-          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم التجهيز</button>
-          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 إعادة لجديد</button>
+          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم</button>
+          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 جديد</button>
           <button class="btn-cancel"  onclick="changeStatus('${escapeHtml(orderId)}', 'ملغي', this)">❌ ملغي</button>
           ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank"><button class="btn-wa">📲 تواصل</button></a>` : ''}
         </div>`;
+      // نخزّن نص الطلب في المصفوفة بمفتاح orderId (يحافظ على الأسطر والرموز)
+      _orderMessages[orderId] = fullMsg;
+      card.dataset.orderId = orderId;
       listDiv.appendChild(card);
     });
+  }
+
+  function copyOrderText(btn) {
+    const card = btn.closest('.order-card');
+    const orderId = card.dataset.orderId || '';
+    const text = _orderMessages[orderId] || '';
+    if (!text) { alert('لا يوجد نص للنسخ'); return; }
+    const original = btn.textContent;
+    const done = () => {
+      btn.textContent = '✅ تم النسخ';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+    };
+    // الطريقة الحديثة
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); if (cb) cb(); } catch (e) {}
+    document.body.removeChild(ta);
   }
 
   async function changeStatus(orderId, newStatus, btn) {
@@ -704,7 +780,6 @@
     }
   }
 
-
 </script>
 </head>
 <body>
@@ -715,6 +790,7 @@
   <div class="paste-section">
     <textarea id="pasteCartInput" rows="4" placeholder="الصق السلة هنا كاملة"></textarea>
     <div class="paste-actions">
+      <button onclick="pasteFromClipboard()" style="background:#1565C0;color:#fff;">📥 لصق من الحافظة</button>
       <button onclick="parseAndFillCart()">📋 تحليل وملء الحقول</button>
       <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
     </div>
@@ -742,7 +818,6 @@
     <div id="sizesCheckboxes"></div>
     <button class="primary-btn" id="prepareBtn" onclick="prepareOrder()" style="width:100%; margin-top:16px;">تجهيز الطلب</button>
   </div>
-
 
   <!-- ===== قسم طلبات الموقع ===== -->
   <div id="websiteOrdersBox" class="website-orders-section">
@@ -854,6 +929,31 @@
       const hint = row.querySelector('.size-hint');
       if (hint) hint.style.display = 'none';
       row.querySelector('.productId').focus();
+    }
+  }
+
+  // لصق مباشر من الحافظة إلى خانة التحليل
+  async function pasteFromClipboard() {
+    const textarea = document.getElementById('pasteCartInput');
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          textarea.value = text;
+          // تحليل تلقائي فوري بعد اللصق
+          parseAndFillCart();
+        } else {
+          alert('الحافظة فارغة');
+        }
+      } else {
+        // المتصفح لا يدعم القراءة التلقائية — نطلب لصقاً يدوياً
+        textarea.focus();
+        alert('اضغط لصق يدوياً (Ctrl+V) في الخانة');
+      }
+    } catch (e) {
+      // فشل الإذن — نوجّه المستخدم للصق اليدوي
+      textarea.focus();
+      alert('لم يُسمح بالوصول للحافظة. الصق يدوياً (Ctrl+V) في الخانة');
     }
   }
 
@@ -1264,154 +1364,7 @@
   document.addEventListener('keydown', handleEnterToAddField);
   window.onload = focusFirstInput;
 
-  // ==================== طلبات الموقع ====================
-
-  let _allWebsiteOrders  = [];
-  let _currentFilter     = 'all';
-  let _woAutoRefreshTimer = null;
-
-  function toggleWebsiteOrders() {
-    const box = document.getElementById('websiteOrdersBox');
-    if (box.style.display === 'block') {
-      box.style.display = 'none';
-      clearInterval(_woAutoRefreshTimer);
-    } else {
-      box.style.display = 'block';
-      loadWebsiteOrders();
-      // تحديث تلقائي كل 30 ثانية عند الفتح
-      _woAutoRefreshTimer = setInterval(loadWebsiteOrders, 30000);
-    }
-  }
-
-  async function loadWebsiteOrders() {
-    const listDiv = document.getElementById('websiteOrdersList');
-    listDiv.innerHTML = '<div class="wo-refreshing">🔄 جاري التحميل...</div>';
-    try {
-      const res    = await fetch(`${scriptURL}?action=getOrders`);
-      const orders = await res.json();
-      if (orders.error) throw new Error(orders.error);
-      _allWebsiteOrders = orders;
-      updateWoCount();
-      renderOrders(_currentFilter);
-    } catch (err) {
-      listDiv.innerHTML = '<div class="wo-empty">❌ خطأ في التحميل: ' + err.message + '</div>';
-    }
-  }
-
-  function updateWoCount() {
-    const newCount = _allWebsiteOrders.filter(o => o['الحالة'] === 'جديد').length;
-    const badge    = document.getElementById('woNewCount');
-    const total    = document.getElementById('woTotalCount');
-    total.textContent = _allWebsiteOrders.length + ' طلب';
-    if (newCount > 0) {
-      badge.textContent  = newCount;
-      badge.style.display = 'inline';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
-  function filterOrders(btn, filter) {
-    _currentFilter = filter;
-    document.querySelectorAll('.wo-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderOrders(filter);
-  }
-
-  function renderOrders(filter) {
-    const listDiv = document.getElementById('websiteOrdersList');
-    let filtered = _allWebsiteOrders;
-    if (filter !== 'all') {
-      filtered = _allWebsiteOrders.filter(o => o['الحالة'] === filter);
-    }
-    if (!filtered.length) {
-      listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
-      return;
-    }
-    listDiv.innerHTML = '';
-    filtered.forEach(function(order) {
-      const orderId  = order['Order ID']    || '';
-      const date     = order['التاريخ']     || '';
-      const time     = order['الوقت']       || '';
-      const name     = order['الاسم']       || '';
-      const phone    = order['الهاتف']      || '';
-      const address  = order['العنوان']     || '';
-      const products = order['المنتجات']    || '';
-      const total    = order['المجموع (دينار)'] || 0;
-      const channel  = order['قناة الإرسال'] || '';
-      const status   = order['الحالة']      || 'جديد';
-
-      // رابط واتساب
-      const waTel = phone.replace(/\D/g,'');
-      const waMsg = encodeURIComponent('متابعة طلب ' + orderId);
-
-      // نص الرسالة المختصر
-      const statusClass = 'st-' + status.replace(/\s/g, '-');
-      const channelIcon = channel === 'whatsapp' ? '📲 واتساب' : channel === 'telegram' ? '✈️ تليجرام' : channel;
-
-      const card = document.createElement('div');
-      card.className = 'order-card';
-      card.dataset.status = status;
-      card.dataset.orderId = orderId;
-      card.innerHTML = `
-        <div class="oc-header">
-          <span class="oc-id">🆔 ${escapeHtml(orderId)}</span>
-          <span class="oc-time">📅 ${escapeHtml(date)} ${escapeHtml(time)}</span>
-          <span class="oc-status ${statusClass}">${escapeHtml(status)}</span>
-        </div>
-        <div class="oc-customer">👤 ${escapeHtml(name)}</div>
-        <div class="oc-info">📞 ${escapeHtml(phone)}</div>
-        <div class="oc-info">📍 ${escapeHtml(address)}</div>
-        <div class="oc-products">${escapeHtml(products)}</div>
-        <div class="oc-total">💰 المجموع: ${Number(total).toLocaleString()} دينار</div>
-        <div class="oc-channel">📡 ${escapeHtml(channelIcon)}</div>
-        <div class="oc-actions">
-          <button class="btn-inprog"  onclick="changeStatus('${escapeHtml(orderId)}', 'قيد التجهيز', this)">⚙️ قيد التجهيز</button>
-          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم التجهيز</button>
-          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 إعادة لجديد</button>
-          <button class="btn-cancel"  onclick="changeStatus('${escapeHtml(orderId)}', 'ملغي', this)">❌ ملغي</button>
-          ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank"><button class="btn-wa">📲 تواصل</button></a>` : ''}
-        </div>`;
-      listDiv.appendChild(card);
-    });
-  }
-
-  async function changeStatus(orderId, newStatus, btn) {
-    const card = btn.closest('.order-card');
-    btn.disabled = true;
-    btn.textContent = '⏳...';
-    try {
-      const res    = await fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'updateOrderStatus', orderId: orderId, status: newStatus })
-      });
-      const result = await res.json();
-      if (result.success) {
-        // تحديث محلي فوري بدون إعادة تحميل
-        card.dataset.status = newStatus;
-        card.querySelector('.oc-status').textContent  = newStatus;
-        card.querySelector('.oc-status').className    =
-          'oc-status st-' + newStatus.replace(/\s/g, '-');
-        // تحديث المصفوفة المحلية
-        const idx = _allWebsiteOrders.findIndex(o => o['Order ID'] === orderId);
-        if (idx !== -1) _allWebsiteOrders[idx]['الحالة'] = newStatus;
-        updateWoCount();
-        // إذا كان الفلتر نشطاً نعيد الرسم
-        if (_currentFilter !== 'all' && _currentFilter !== newStatus) {
-          card.style.opacity = '0.4';
-          setTimeout(() => renderOrders(_currentFilter), 800);
-        }
-      } else {
-        alert('❌ خطأ: ' + (result.error || 'فشل التحديث'));
-        btn.disabled = false;
-        btn.textContent = newStatus;
-      }
-    } catch (err) {
-      alert('❌ خطأ في الاتصال: ' + err.message);
-      btn.disabled = false;
-    }
-  }
-
+  
 
 </script>
 </body>
