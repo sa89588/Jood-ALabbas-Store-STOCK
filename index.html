@@ -790,16 +790,15 @@
   <div class="paste-section">
     <textarea id="pasteCartInput" rows="4" placeholder="الصق السلة هنا كاملة"></textarea>
     <div class="paste-actions">
-      <button onclick="pasteFromClipboard()" style="background:#1565C0;color:#fff;">📥 لصق من الحافظة</button>
-      <button onclick="parseAndFillCart()">📋 تحليل وملء الحقول</button>
-      <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
+      <button onclick="pasteFromClipboard()" style="background:#1565C0;color:#fff;">📥لصق</button>
+      <button onclick="parseAndFillCart()">📋تحليل</button>
+      <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹مسح</button>
     </div>
   </div>
 
   <div id="modelsContainer">
     <div class="input-row">
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
-      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     </div>
   </div>
@@ -889,7 +888,6 @@
     div.innerHTML = `
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off" value="${escapeHtml(productId)}">
       <span class="size-hint" style="display: ${extractedSize ? 'inline-block' : 'none'}">📏 مستخرج: ${escapeHtml(extractedSize)}</span>
-      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     `;
     container.appendChild(div);
@@ -999,41 +997,6 @@
 
   function clearPasteArea() {
     document.getElementById('pasteCartInput').value = '';
-  }
-
-  function startScan(btn) {
-    if (html5QrCode) { html5QrCode.stop().catch(()=>{}); }
-    activeScanButton = btn;
-    const readerDiv = document.getElementById('reader');
-    readerDiv.style.display = 'block';
-    if (html5QrCode) {
-      html5QrCode.clear().then(()=> initScanner()).catch(()=> initScanner());
-    } else {
-      initScanner();
-    }
-  }
-  function initScanner() {
-    html5QrCode = new Html5Qrcode('reader');
-    html5QrCode.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        if (activeScanButton) {
-          const row = activeScanButton.closest('.input-row');
-          const input = row ? row.querySelector('.productId') : document.querySelector('.productId');
-          if (input) input.value = decodedText;
-        }
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-          document.getElementById('reader').style.display = 'none';
-          focusFirstInput();
-        }).catch(console.warn);
-      },
-      () => {}
-    ).catch(err => {
-      alert('لا يمكن الوصول للكاميرا: ' + err);
-      document.getElementById('reader').style.display = 'none';
-    });
   }
 
   async function fetchAllSizes() {
@@ -1343,7 +1306,6 @@
     container.innerHTML = `
       <div class="input-row">
         <input type="text" class="productId" placeholder="أدخل ID المنتج (اضغط Enter لإضافة حقل جديد)" autocomplete="off">
-        <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
         <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
       </div>
     `;
