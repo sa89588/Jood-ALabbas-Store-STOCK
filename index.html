@@ -611,22 +611,38 @@
       box.style.display = 'block';
       loadWebsiteOrders();
       // تحديث تلقائي كل 30 ثانية عند الفتح
-      _woAutoRefreshTimer = setInterval(loadWebsiteOrders, 30000);
+      _woAutoRefreshTimer = setInterval(function(){ loadWebsiteOrders(true); }, 30000);
     }
   }
 
-  async function loadWebsiteOrders() {
+  /* تحميل الطلبات
+     silent=true  → تحديث صامت في الخلفية (بدون وميض، للتحديث التلقائي)
+     silent=false → يعرض "جاري التحميل" (لأول فتح أو ضغط زر التحديث) */
+  async function loadWebsiteOrders(silent) {
     const listDiv = document.getElementById('websiteOrdersList');
-    listDiv.innerHTML = '<div class="wo-refreshing">🔄 جاري التحميل...</div>';
+    // نعرض "جاري التحميل" فقط لو القائمة فارغة أو طلب صريح
+    if (!silent && _allWebsiteOrders.length === 0) {
+      listDiv.innerHTML = '<div class="wo-refreshing">🔄 جاري التحميل...</div>';
+    }
     try {
       const res    = await fetch(`${scriptURL}?action=getOrders`);
       const orders = await res.json();
       if (orders.error) throw new Error(orders.error);
-      _allWebsiteOrders = Array.isArray(orders) ? orders : [];
+      const newOrders = Array.isArray(orders) ? orders : [];
+
+      // مقارنة: هل تغيّر شيء فعلاً؟ (نتجنب إعادة الرسم بلا داعٍ)
+      const oldHash = JSON.stringify(_allWebsiteOrders);
+      const newHash = JSON.stringify(newOrders);
+      if (oldHash === newHash) return; // لا تغيير — لا نلمس الواجهة
+
+      _allWebsiteOrders = newOrders;
       updateWoCount();
       renderOrders(_currentFilter);
     } catch (err) {
-      listDiv.innerHTML = '<div class="wo-empty">❌ خطأ في التحميل: ' + err.message + '</div>';
+      // في التحديث الصامت لا نُظهر الخطأ (نُبقي البيانات الحالية)
+      if (!silent) {
+        listDiv.innerHTML = '<div class="wo-empty">❌ خطأ في التحميل: ' + err.message + '</div>';
+      }
     }
   }
 
@@ -660,6 +676,8 @@
       listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
       return;
     }
+    // نحفظ موضع التمرير لنستعيده بعد الرسم (يمنع القفز المزعج)
+    const scrollY = window.scrollY;
     listDiv.innerHTML = '';
     filtered.forEach(function(order) {
       // بنية السكربت: Order ID, التاريخ, الوقت, الهاتف, القناة, الحالة, نص الطلب
@@ -712,6 +730,9 @@
       card.dataset.orderId = orderId;
       listDiv.appendChild(card);
     });
+
+    // استعادة موضع التمرير (يمنع القفز للأعلى عند التحديث)
+    window.scrollTo(0, scrollY);
   }
 
   function copyOrderText(btn) {
@@ -790,15 +811,16 @@
   <div class="paste-section">
     <textarea id="pasteCartInput" rows="4" placeholder="الصق السلة هنا كاملة"></textarea>
     <div class="paste-actions">
-      <button onclick="pasteFromClipboard()" style="background:#1565C0;color:#fff;">📥لصق</button>
-      <button onclick="parseAndFillCart()">📋تحليل</button>
-      <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹مسح</button>
+      <button onclick="pasteFromClipboard()" style="background:#1565C0;color:#fff;">📥 لصق من الحافظة</button>
+      <button onclick="parseAndFillCart()">📋 تحليل وملء الحقول</button>
+      <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
     </div>
   </div>
 
   <div id="modelsContainer">
     <div class="input-row">
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
+      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     </div>
   </div>
@@ -888,6 +910,7 @@
     div.innerHTML = `
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off" value="${escapeHtml(productId)}">
       <span class="size-hint" style="display: ${extractedSize ? 'inline-block' : 'none'}">📏 مستخرج: ${escapeHtml(extractedSize)}</span>
+      <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
       <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
     `;
     container.appendChild(div);
@@ -997,6 +1020,41 @@
 
   function clearPasteArea() {
     document.getElementById('pasteCartInput').value = '';
+  }
+
+  function startScan(btn) {
+    if (html5QrCode) { html5QrCode.stop().catch(()=>{}); }
+    activeScanButton = btn;
+    const readerDiv = document.getElementById('reader');
+    readerDiv.style.display = 'block';
+    if (html5QrCode) {
+      html5QrCode.clear().then(()=> initScanner()).catch(()=> initScanner());
+    } else {
+      initScanner();
+    }
+  }
+  function initScanner() {
+    html5QrCode = new Html5Qrcode('reader');
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        if (activeScanButton) {
+          const row = activeScanButton.closest('.input-row');
+          const input = row ? row.querySelector('.productId') : document.querySelector('.productId');
+          if (input) input.value = decodedText;
+        }
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          document.getElementById('reader').style.display = 'none';
+          focusFirstInput();
+        }).catch(console.warn);
+      },
+      () => {}
+    ).catch(err => {
+      alert('لا يمكن الوصول للكاميرا: ' + err);
+      document.getElementById('reader').style.display = 'none';
+    });
   }
 
   async function fetchAllSizes() {
@@ -1283,9 +1341,29 @@
       const result = await response.json();
       if (result.success) {
         showMessage(`✅ تم إرجاع المنتج ${id} - ${size} بنجاح`, true);
-        if (document.getElementById('historyBox').style.display === 'block') {
-          loadSalesLog();
+
+        /* تحديث موضعي: نحذف صف المنتج المُرجَع من الجدول مباشرة
+           بدل إعادة تحميل السجل كاملاً (يمنع الوميض) */
+        const rowEl = btn.closest('tr');
+        if (rowEl) {
+          rowEl.style.transition = 'opacity .3s, transform .3s';
+          rowEl.style.opacity = '0';
+          rowEl.style.transform = 'translateX(30px)';
+          setTimeout(function(){
+            rowEl.remove();
+            // لو لم يبقَ صف، نعرض رسالة فارغة
+            const tbody = document.querySelector('#historyBox tbody');
+            if (tbody && tbody.children.length === 0) {
+              const box = document.getElementById('historyBox');
+              const msg = document.createElement('div');
+              msg.style.cssText = 'text-align:center;padding:20px;color:#94a3b8;';
+              msg.textContent = 'لا توجد مبيعات مسجّلة';
+              box.appendChild(msg);
+            }
+          }, 300);
         }
+
+        /* تحديث القياسات فقط لو كانت معروضة (بدون إعادة رسم كامل) */
         if (document.getElementById('sizesBox').style.display === 'block') {
           fetchAllSizes();
         }
@@ -1306,6 +1384,7 @@
     container.innerHTML = `
       <div class="input-row">
         <input type="text" class="productId" placeholder="أدخل ID المنتج (اضغط Enter لإضافة حقل جديد)" autocomplete="off">
+        <button class="icon-btn" onclick="startScan(this)" title="مسح الباركود">📷</button>
         <button class="icon-btn remove-btn" onclick="removeRow(this)" title="إزالة الحقل">✖</button>
       </div>
     `;
