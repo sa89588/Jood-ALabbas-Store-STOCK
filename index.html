@@ -591,10 +591,56 @@
       .oc-actions button { min-width: 100%; }
     }
 
+    
+    /* أزرار الحالات الجديدة */
+    .btn-confirm { background:#3b82f6; color:#fff; }
+    .btn-prep    { background:#10b981; color:#fff; }
+    .btn-courier { background:#8b5cf6; color:#fff; }
+    .btn-deliver { background:#22c55e; color:#fff; }
+    .oc-actions2 { margin-top:6px; padding-top:6px; border-top:1px dashed #e2e8f0; }
+
+    .order-card[data-status="قيد المراجعة"]    { border-color:#f59e0b; }
+    .order-card[data-status="تم التأكيد"]      { border-color:#3b82f6; }
+    .order-card[data-status="تم التجهيز"]      { border-color:#10b981; }
+    .order-card[data-status="في عهدة المندوب"] { border-color:#8b5cf6; }
+    .order-card[data-status="تم التسليم"]      { border-color:#22c55e; opacity:.75; }
+    .order-card[data-status="ملغي"]            { border-color:#ef4444; opacity:.55; }
+
+    
+    /* ===== الكبسولات ===== */
+    .acc { background:#fff; border:1px solid #e2e8f0; border-radius:14px; margin-bottom:12px; overflow:hidden; }
+    .acc-head { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer; user-select:none; background:#f8fafc; transition:background .2s; }
+    .acc-head:hover { background:#f1f5f9; }
+    .acc-title { font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; }
+    .acc-arrow { font-size:13px; color:#64748b; transition:transform .25s; }
+    .acc.open .acc-arrow { transform:rotate(180deg); }
+    .acc-body { display:none; padding:16px; border-top:1px solid #e2e8f0; }
+    .acc.open .acc-body { display:block; }
+    @media (max-width:600px){ .acc-head{padding:12px 13px;} .acc-title{font-size:14px;} .acc-body{padding:12px;} }
+
+    
+    /* أزرار الأقسام الرئيسية */
+    .wo-open-btn, .sl-open-btn {
+      width:100%; padding:15px; border:none; border-radius:14px;
+      font-size:15px; font-weight:800; cursor:pointer; margin-bottom:10px;
+      font-family:inherit; transition:transform .15s, box-shadow .2s;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+    }
+    .wo-open-btn { background:linear-gradient(135deg,#1565C0,#1976D2); color:#fff; box-shadow:0 4px 14px rgba(21,101,192,.3); }
+    .sl-open-btn { background:linear-gradient(135deg,#7c3aed,#8b5cf6); color:#fff; box-shadow:0 4px 14px rgba(124,58,237,.3); }
+    .wo-open-btn:hover, .sl-open-btn:hover { transform:translateY(-1px); }
+
     </style>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
+
+  /* ==================== ACCORDION ==================== */
+  function toggleAcc(id){
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('open');
+  }
+
   // ==================== طلبات الموقع ====================
 
   let _allWebsiteOrders  = [];
@@ -647,7 +693,7 @@
   }
 
   function updateWoCount() {
-    const newCount = _allWebsiteOrders.filter(o => String(o['الحالة']||'') === 'جديد').length;
+    const newCount = _allWebsiteOrders.filter(o => String(o['الحالة']||'') === 'قيد المراجعة').length;
     const badge    = document.getElementById('woNewCount');
     const total    = document.getElementById('woTotalCount');
     total.textContent = _allWebsiteOrders.length + ' طلب';
@@ -668,10 +714,12 @@
 
   function renderOrders(filter) {
     const listDiv = document.getElementById('websiteOrdersList');
-    let filtered = _allWebsiteOrders;
+    let filtered = _allWebsiteOrders.slice();
     if (filter !== 'all') {
-      filtered = _allWebsiteOrders.filter(o => String(o['الحالة']||'') === filter);
+      filtered = filtered.filter(o => String(o['الحالة']||'') === filter);
     }
+    // الأقدم أولاً (FIFO) — الطلب الأقدم ينتظر أكثر فيستحق الأولوية
+    filtered.reverse();
     if (!filtered.length) {
       listDiv.innerHTML = '<div class="wo-empty">لا توجد طلبات في هذه الفئة</div>';
       return;
@@ -693,7 +741,7 @@
       const time     = String(getVal(order, ['الوقت', 'Time', 'time']) || '');
       const phone    = String(getVal(order, ['الهاتف', 'Phone', 'phone']) || '');
       const channel  = String(getVal(order, ['القناة', 'قناة الإرسال', 'Channel', 'channel']) || '');
-      const status   = String(getVal(order, ['الحالة', 'Status', 'status']) || 'جديد');
+      const status   = String(getVal(order, ['الحالة', 'Status', 'status']) || 'قيد المراجعة');
       const fullMsg  = String(getVal(order, ['نص الطلب', 'نص الرسالة', 'Message', 'message', 'الرسالة']) || '');
 
       // رابط واتساب
@@ -718,12 +766,15 @@
         <div class="oc-channel">📡 ${escapeHtml(channelIcon)}</div>
         <div class="oc-products">${escapeHtml(fullMsg)}</div>
         <div class="oc-actions">
-          <button class="btn-copy"    onclick="copyOrderText(this)">📋 نسخ النص</button>
-          <button class="btn-inprog"  onclick="changeStatus('${escapeHtml(orderId)}', 'قيد التجهيز', this)">⚙️ قيد التجهيز</button>
-          <button class="btn-done"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">✅ تم</button>
-          <button class="btn-pending" onclick="changeStatus('${escapeHtml(orderId)}', 'جديد', this)">🔄 جديد</button>
-          <button class="btn-cancel"  onclick="changeStatus('${escapeHtml(orderId)}', 'ملغي', this)">❌ ملغي</button>
+          <button class="btn-confirm" onclick="changeStatus('${escapeHtml(orderId)}', 'تم التأكيد', this)">✅ تأكيد</button>
+          <button class="btn-prep"    onclick="changeStatus('${escapeHtml(orderId)}', 'تم التجهيز', this)">📦 تم التجهيز</button>
+          <button class="btn-courier" onclick="changeStatus('${escapeHtml(orderId)}', 'في عهدة المندوب', this)">🚚 مع المندوب</button>
+          <button class="btn-deliver" onclick="changeStatus('${escapeHtml(orderId)}', 'تم التسليم', this)">🎉 تم التسليم</button>
+        </div>
+        <div class="oc-actions oc-actions2">
+          <button class="btn-copy"   onclick="copyOrderText(this)">📋 نسخ</button>
           ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank"><button class="btn-wa">📲 تواصل</button></a>` : ''}
+          <button class="btn-cancel" onclick="cancelWebOrder('${escapeHtml(orderId)}', this)">❌ إلغاء + إرجاع</button>
         </div>`;
       // نخزّن نص الطلب في المصفوفة بمفتاح orderId (يحافظ على الأسطر والرموز)
       _orderMessages[orderId] = fullMsg;
@@ -763,6 +814,42 @@
     ta.select();
     try { document.execCommand('copy'); if (cb) cb(); } catch (e) {}
     document.body.removeChild(ta);
+  }
+
+
+  /* إلغاء طلب + إرجاع كل منتجاته للمخزون */
+  async function cancelWebOrder(orderId, btn) {
+    if (!confirm('⚠️ إلغاء الطلب ' + orderId + '؟\n\nسيتم إرجاع كل المنتجات والقياسات إلى المخزون.')) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'جاري...';
+    try {
+      const res = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'cancelOrder', orderId: orderId })
+      });
+      const result = await res.json();
+      if (result.success) {
+        const n = (result.restored || []).length;
+        showMessage('✅ أُلغي الطلب وأُرجع ' + n + ' منتج للمخزون', true);
+        const card = btn.closest('.order-card');
+        if (card) {
+          card.dataset.status = 'ملغي';
+          const stEl = card.querySelector('.oc-status');
+          if (stEl) { stEl.textContent = 'ملغي'; stEl.className = 'oc-status st-ملغي'; }
+          card.style.opacity = '0.55';
+        }
+        const idx = _allWebsiteOrders.findIndex(o => String(o['Order ID']) === String(orderId));
+        if (idx !== -1) _allWebsiteOrders[idx]['الحالة'] = 'ملغي';
+        updateWoCount();
+      } else {
+        showMessage(result.error || 'فشل الإلغاء', false);
+        btn.disabled = false; btn.textContent = original;
+      }
+    } catch (err) {
+      showMessage('❌ خطأ: ' + err.message, false);
+      btn.disabled = false; btn.textContent = original;
+    }
   }
 
   async function changeStatus(orderId, newStatus, btn) {
@@ -807,7 +894,22 @@
 <div class="container">
   <h2>📦 تجهيز الطلبات <span>v5</span></h2>
 
-  <!-- قسم اللصق التلقائي -->
+  <!-- ═══ زر فتح الطلبات (رئيسي) ═══ -->
+  <button class="wo-open-btn" onclick="toggleWebsiteOrders()">
+    🌐 طلبات الموقع
+    <span id="woNewCount" style="display:none;background:#ef4444;color:#fff;border-radius:50%;padding:2px 9px;font-size:13px;margin-inline-start:6px;">0</span>
+  </button>
+
+  <!-- ═══ زر سجل التجهيز اللحظي ═══ -->
+  <button class="sl-open-btn" onclick="toggleHistory()">📸 سجل التجهيز اللحظي</button>
+
+  <!-- ═══ كبسولة: تجهيز يدوي — سلة كاملة ═══ -->
+  <div class="acc" id="accPaste">
+    <div class="acc-head" onclick="toggleAcc('accPaste')">
+      <span class="acc-title">🛒 تجهيز يدوي — سلة كاملة</span>
+      <span class="acc-arrow">▼</span>
+    </div>
+    <div class="acc-body">
   <div class="paste-section">
     <textarea id="pasteCartInput" rows="4" placeholder="الصق السلة هنا كاملة"></textarea>
     <div class="paste-actions">
@@ -816,7 +918,16 @@
       <button onclick="clearPasteArea()" style="background:#e2e8f0;">🧹 مسح النص</button>
     </div>
   </div>
+    </div>
+  </div>
 
+  <!-- ═══ كبسولة: تجهيز يدوي — موديل واحد ═══ -->
+  <div class="acc" id="accManual">
+    <div class="acc-head" onclick="toggleAcc('accManual')">
+      <span class="acc-title">🔍 تجهيز يدوي — موديل واحد</span>
+      <span class="acc-arrow">▼</span>
+    </div>
+    <div class="acc-body">
   <div id="modelsContainer">
     <div class="input-row">
       <input type="text" class="productId" placeholder="أدخل ID المنتج" autocomplete="off">
@@ -829,8 +940,6 @@
     <button class="secondary-btn" onclick="addModel()">➕ إضافة</button>
     <button class="primary-btn" onclick="fetchAllSizes()" id="fetchBtn">🔍 عرض القياسات</button>
     <button class="secondary-btn" onclick="clearForm()">🧹 مسح</button>
-    <button class="history-btn" onclick="toggleHistory()">📜 سجل التجهيزات</button>
-    <button class="history-btn" onclick="toggleWebsiteOrders()" style="background:#1565C0;color:#fff;">🌐 طلبات الموقع <span id="woNewCount" style="display:none;background:#ef4444;border-radius:50%;padding:1px 7px;font-size:12px;margin-right:4px;">0</span></button>
   </div>
 
   <div id="reader"></div>
@@ -838,6 +947,8 @@
   <div id="sizesBox" style="display:none;" class="sizes-section">
     <div id="sizesCheckboxes"></div>
     <button class="primary-btn" id="prepareBtn" onclick="prepareOrder()" style="width:100%; margin-top:16px;">تجهيز الطلب</button>
+  </div>
+    </div>
   </div>
 
   <!-- ===== قسم طلبات الموقع ===== -->
@@ -849,11 +960,12 @@
     </div>
     <div class="wo-filters">
       <button class="wo-filter-btn active" data-filter="all" onclick="filterOrders(this,'all')">الكل</button>
-      <button class="wo-filter-btn" data-filter="جديد" onclick="filterOrders(this,'جديد')">🆕 جديد</button>
-      <button class="wo-filter-btn" data-filter="قيد التجهيز" onclick="filterOrders(this,'قيد التجهيز')">⚙️ قيد التجهيز</button>
-      <button class="wo-filter-btn" data-filter="تم التجهيز" onclick="filterOrders(this,'تم التجهيز')">✅ تم التجهيز</button>
+      <button class="wo-filter-btn" data-filter="قيد المراجعة" onclick="filterOrders(this,'قيد المراجعة')">📋 مراجعة</button>
+      <button class="wo-filter-btn" data-filter="تم التأكيد" onclick="filterOrders(this,'تم التأكيد')">✅ مؤكّد</button>
+      <button class="wo-filter-btn" data-filter="تم التجهيز" onclick="filterOrders(this,'تم التجهيز')">📦 مجهّز</button>
+      <button class="wo-filter-btn" data-filter="في عهدة المندوب" onclick="filterOrders(this,'في عهدة المندوب')">🚚 مندوب</button>
+      <button class="wo-filter-btn" data-filter="تم التسليم" onclick="filterOrders(this,'تم التسليم')">🎉 مُسلّم</button>
       <button class="wo-filter-btn" data-filter="ملغي" onclick="filterOrders(this,'ملغي')">❌ ملغي</button>
-      <button onclick="loadWebsiteOrders()" style="padding:6px 14px;border-radius:20px;border:1.5px solid #1565C0;background:#fff;color:#1565C0;cursor:pointer;font-size:13px;font-weight:600;">🔄 تحديث</button>
     </div>
     <div id="websiteOrdersList"></div>
   </div>
